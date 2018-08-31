@@ -118,3 +118,71 @@
 `Ctrl+Backspace` 删除光标前一个单词
 
 `Ctrl+Delete` 删除光标后一个单词
+
+
+`Ctrl+Click` 在单击的位置添加新光标
+
+`Alt+Ctrl+Up/Down` 在当前光标上方/下方添加另一个光标
+
+`Ctrl+D` 选择文档中与当前所选单词相同的下一个单词
+
+`Alt+F3` 选择文档中与当前所选单词相同的所有单词
+
+`Ctrl+M` 跳转到与光标相邻的支架。当没有相邻支架时，它会跳到最近的封闭支架
+
+`Alt+Ctrl+,` 选择当前括号内的所有文本
+
+`Alt+Ctrl+.` 关闭当前的XML/HTML标记
+
+`Ctrl+Shift+U` 切换菜单以更改文件编码
+
+### Find and Replace
+
+`Ctrl+F` 在缓冲区内搜索
+
+`Ctrl+Shift+F` 搜索整个项目
+
+### Snippets -代码片段
+
+创建自己的代码片段
+
+`%USERPROFILE%\.atom` 中的 `snippets.cson` 文件
+
+格式
+```
+'.source.js':
+  'console.log':
+    'prefix': 'log'
+    'body': 'console.log(${1:"crash"});$2'
+```
+
+代码片段和 `source.java` 等文件相关
+
+### Autocomplete
+在编辑器中使用 `Tab` 或者 `Enter` 能够查看和插入一些自动补全
+
+### Fold -折叠
+`Alt+Ctrl+[` 折叠
+
+`Alt+Ctrl+]` 展开
+
+`Alt+Ctrl+Shift+[` 折叠一切
+
+`Alt+Ctrl+Shift+]` 展开一切
+
+`Ctrl+K` `Ctrl+0-9` 特定缩进级别折叠
+
+`Alt+Ctrl+F` 键入或选择“折叠选择”来折叠代码或文本的任意部分
+
+### Panes
+`Ctrl+K` `Up/Down/Left/Right` 分窗
+
+`Ctrl+K` `Ctrl+Up/Down/Left/Right` 焦点移动
+
+`Ctrl+W` 关闭窗口
+
+### Grammer
+
+`Ctrl+Shift+L` 语法选择器
+
+### Atom中的版本控制
