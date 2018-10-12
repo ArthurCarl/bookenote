@@ -1,4 +1,20 @@
-批量更新存储过程:
+## NETWORK/ADMIN/tnsnames.ora
+
+```
+AliasName = 
+  (DESCRIPTION=
+    (ADDRESS_LIST=
+      (ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521))
+    )
+    (CONNECT_DATA=
+      (SERVICE_NAME = 实例名称)
+    )
+  )
+```
+
+
+
+## 批量更新存储过程:
 ```sql
 declare 
   i_maxrows number := 5000;
