@@ -34,10 +34,10 @@ final V putVal(K key, V value, boolean onlyIfAbsent){
                 break;
               }
             }
-          } else if(f instanceof TreeBin){
+          } else if(f instanceof TreeBin){ // 红黑树
             Node<K,V> p;
             binCount = 2 ;
-            if((p = ((TreeBin<k,V>)f).putTreeVal(hash,key,value))!=null){
+            if((p = ((TreeBin<k,V>)f).putTreeVal(hash,key,value))!=null){ // 红黑树 add 方法
               oldVal = p.val;
               if(!onlyIfAbsent){
                 p.val = value;
