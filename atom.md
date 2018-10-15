@@ -181,8 +181,28 @@
 
 `Ctrl+W` 关闭窗口
 
-### Grammer
+### Grammer 语法
 
 `Ctrl+Shift+L` 语法选择器
 
 ### Atom中的版本控制
+`Alt+Ctrl+Z` 检查 `HEAD` revision
+
+`Alt+G` + `Up`/`Down` 上/下一不同处  
+
+`Alt+G`+ `O` 打开GitHub文件
+
+`Alt+G` + `B` GitHub 打开 Blame 视图
+
+`Alt+G` + `H` GitHub上打开文件的历史记录视图
+
+`Alt+G` + `C` GitHub上当前文件的URL复制到剪贴板
+
+`Alt+G` + `R` GitHub上的分支比较
+
+### GitHub 插件
+`Ctrl+9` Git 视图
+
+`Ctrl+8` GitHub 视图
+
+
