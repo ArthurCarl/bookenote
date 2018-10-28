@@ -17,7 +17,7 @@ Banner 变量
 - `${application.formatted-version}`
 - `${spring-boot.version}`
 - `${spring-boot.formatted-version}`
-- `${Ansi.NAME}` 
+- `${Ansi.NAME}`
 - `${application.title}`
 
 `spring.main.banner-mode` banner的模式:`System.out` `log` `off`
@@ -106,7 +106,7 @@ SpringBoot支持 `properties` `YAML` `environment variable` 和命令行参数 �
 
 `PropertySource` 顺序，确保文件的加载顺序
 
-#### `SPRING_APPLICATION_JSON` 
+#### `SPRING_APPLICATION_JSON`
 1. 环境变量:`$ SPRING_APPLICATION_JSON='{"acme":{"name":"test"}}' java -jar myapp.jar`
 2. java命令行参数:`spring.application.json` `$ java -Dspring.application.json='{"name":"test"}' -jar myapp.jar`
 3. 命令行擦拭:`$ java -jar myapp.jar --spring.application.json='{"name":"test"}'`
@@ -155,8 +155,8 @@ my.number.in.range=${random.int[1024,65536]}
 ```yaml
 my:
 servers:
-	- dev.example.com
-	- another.example.com
+  - dev.example.com
+  - another.example.com
 ```
 将以上属性绑定到Spring环境中;
 ```java
@@ -176,17 +176,17 @@ public class Config {
 #### Multi-profile YAML Documents
 ```yaml
 server: #默认没有配置时
-	address: 192.168.1.100
+  address: 192.168.1.100
 ---
 spring:
-	profiles: development
+  profiles: development
 server:
-	address: 127.0.0.1
+  address: 127.0.0.1
 ---
 spring:
-	profiles: production
+  profiles: production
 server:
-	address: 192.168.1.120
+  address: 192.168.1.120
 ```
 
 #### YAML Shortcomings
@@ -279,7 +279,7 @@ public class OwnerProperties {
 - `ACME_MYPROJECT_PERSON_FIRSTNAME`
 
 
-`Map` 属性值映射使用`[]` 
+`Map` 属性值映射使用`[]`
 ```yaml
 acme:
   map:
@@ -376,26 +376,3 @@ acme:
 
 
 --
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
