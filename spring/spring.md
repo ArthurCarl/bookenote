@@ -124,7 +124,7 @@ public class FXNewsProviderMethodReplacer implements MethodReplacer{
 <bean id="providerReplacer" class="....FXNewsProviderMethodReplacer">
 </bean>
 ```
-####Spring容器IoC启动分2个阶段：
+#### Spring容器IoC启动分2个阶段：
 1. 容器启动阶段
   - 加载配置
   - 分析配置信息
