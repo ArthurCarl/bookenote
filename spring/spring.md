@@ -433,6 +433,20 @@ ISubject subject = (ISubject)Proxy.newProxyInstance(ProxyRunner.class.getClassLo
 subject.request();
 ```
 
+动态代理机制只能对实现了相应 Interface 的类使用，没有实现任何 Interface 的类是无法使用动态代理生成动态代理对象。
+
+Spring中默认情况下，如果SpringAOP 发现目标对象实现了对应得 Interface 则采用动态代理机制为其生成代理对象实例；对应没有实现任何 Interface 的类则尝试使用CGLIB-动态字节码生成类库，为目标生成动态代理实例。
+
+#### 动态字节码
+
+
+
+
+
+
+
+
+
 
 
 
