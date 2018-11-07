@@ -438,10 +438,143 @@ subject.request();
 Spring中默认情况下，如果SpringAOP 发现目标对象实现了对应得 Interface 则采用动态代理机制为其生成代理对象实例；对应没有实现任何 Interface 的类则尝试使用CGLIB-动态字节码生成类库，为目标生成动态代理实例。
 
 #### 动态字节码
+原理:对目标类进行继承扩展，生成相应的子类，将横切逻辑置于子类中,系统使用扩展后的目标对象的子类，这样就可以达到与代理模式相同的效果;
 
+![CGLIB继承扩展图](pic/CGLIB动态代理实现.png)
 
+```java
+public class RequestCtrlCallback implements MethodInterceptor{
+  public Object intercept(Object object, Method method, Object[] args, MethodProxy proxy) throws Throwable {
+    if(method.getName().equals("request")){
+      //横切逻辑  
+      return proxy.invokeSuper(object, args);
+    }
+    return null;  
+  }
+}
 
+Enhancer enhancer = new Enhancer();
+enhancer.setSuperclass(Requestable.class);
+enhancer.setCallback(new RequestCtrlCallback());
 
+Requestable proxy = (Rquestable)enhancer.create();
+proxy.request();
+```
+
+CGLIB无法对final方法进行覆写(Override)
+
+## Spring AOP 一世
+
+###  Joinpoint
+`org.springframework.aop.Pointcut` Aop中Pointcut顶级抽象，`TruePointcut`实例；
+
+TruePointcut 中的2个对象:`ClassFilter` 和 `MethodMatcher`
+
+![Pointcut局部类图.png](pic/Pointcut局部类图.png)
+
+常见的Pointcut:
+1. `NameMatchMethodPointcut`
+2. `JdkRegexpMethodPointcut` 和 `Perl5RegexpMethodPointcut`
+3. `AnnotationMatchingPointcut` -注解
+4. `ComposablePointcut`
+5. `ControlFlowPointcut` -精确定位Ponintcut的位置(Class , Method 结合)
+
+### Advice
+
+SpringAOP-Advice 类结构
+
+![SpringAOP-Advice](pic/SpringAOP-Advice.png)
+
+Advice 按照其自身实例能否在目标对象类的所有实例中共享，可以划分为 per-class 类型， per-instance 类型
+
+#### `per-class` 类型Advice
+该类型Advice实例在所有目标对象类的所有实例间共享，通常提供方法拦截的功能，不能为目标对象保存任何状态或者添加新的特性
+
+1. Before Advice  
+  横切逻辑在Jointpoint前执行，在Before Advice执行完成后，程序继续从Joinpoint执行，不会打断程序的执行流程(抛异常了则会将程序中断)  
+  使用这个Advice可以进行整个系统的某些资源初始化或者其他的一些准备工作
+2. ThrowsAdvice-对应AfterThrowingAdvice
+  ThrowsAdvice 用于对系统特定异常情况进行监控，进行统一的异常处理
+3. AfterReturningAdvice-`org.springframework.aop.AfterReturningAdvice`接口  
+  Spring此Advice可以访问到方法的返回值，但不可以更改返回值  
+  批处理的状态入库
+4. Around Advice-`org.aopalliance.intercept.MethodInterceptor`接口  
+  性能检测
+```java
+public class PerformanceMethodInterceptor implements MethodInterceptor{
+  public Object invoke(MethodInvocation invocation) throws Throwable{
+    StopWatch watch = new StopWatch();
+    try{
+      // 横切逻辑
+      watch.start();
+      //横切逻辑完成后，一定要调用此方法，否则会Joinpoint调用链会被中断
+      return invocation.proceed();
+    }finally{
+      watch.stop();
+    }
+  }
+}
+```
+
+#### `per-instance` 类型的Advice
+此类型Advice 会为不同的实例对象保存他们各自的状态及相关逻辑
+
+`Introduction`-Spring中唯一的 `per-instance` 类型 Advice  
+可以在不改变目标类定义的情况下，为目标类型添加新的属性以及行为
+
+Spring中，为目标对象添加新的属性和行为必须声明相应的接口以及相应的实现。再通过特定的拦截器将新的接口定义以及实现类中的逻辑附加到目标对象上，
+之后目标代理对象就拥有新的状态和行为。这个拦截器就是 **`org.springframework.aop.IntroductionInterceptor`** .
+
+`IntroductionInterceptor` 继承了 `MethodInterceptor` 和 `DynamicIntroductionAdvice`:  
+`DynamicIntroductionAdvice` 界定当前的 `IntroductionInterceptor` 为哪些接口提供相应的拦截功能;  
+`MethodInterceptor` 帮助处理新添加的接口上的方法调用；  
+
+新增加的接口上的方法调用，则不必去调用 `MethodInterceptor.proceed()` 方法，这里已经是终点了
+
+![Spring-Introduction类结构图](pic/Spring-Introduction类结构图.png)
+
+实现 `Introduction` 的方式: `DynamicInterceptorAdvice`动态分支 和 `IntroductionInfo`静态配置分支
+
+1. `DelegatingIntroductionInterceptor`
+```java
+public interface IDeveloper{
+  void developSoftware();
+}
+
+public class Developer implements IDeveloper{
+  public void developSoftware(){
+    System.out.println("I am happy with programming.");
+  }
+}
+```
+  - 新状态和行为接口
+  - 新接口的实现类
+  - `DelegatingIntroductionInterceptor` 进行拦截  
+  ```java
+    ITester delegat = new Tester();
+    DelegatingIntroductionInterceptor interceptor = new DelegatingIntroductionInterceptor(delegat);
+    //进行植入
+    ITest tester = (ITest)weaver.weave(developer).with(interceptor).getProxy();
+    //developer的新行为
+    tester.testSofteware();
+  ```
+  - 此实现类不是完整的`per-instance`类型的Advice类型，会持有同一个接口的实例
+2. `DelegatePerTargetObjectIntroductionInterceptor` 在内部持有一个目标对象与对应Introduction逻辑实现类之间的映射关系
+
+### SpringAOP Aspect
+
+![Spring-Advisor分支](pic/Spring-Advisor分支.png)
+
+#### PointcutAdvisor 家族
+
+![PointcutAdvisor及相关子类](pic/PointcutAdvisor及相关子类.png)
+
+1. `DefaultPointcutAdvisor`  
+2. `NameMatchMethodPointcutAdvisor`
+3. `RegexpMethodPointcutAdvisor`
+4. `DefaultBeanFactoryPointcutAdvisor`
+
+#### IntroductionAdvisor 分支
 
 
 
