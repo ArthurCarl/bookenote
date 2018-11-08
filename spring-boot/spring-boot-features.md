@@ -514,17 +514,353 @@ Spring Boot 内部使用 Commons Logging,但是底层Log实现是对外开放的
 输出内容如下:
 - 日期和时间:精确到毫秒，便排序
 - 日志级别:`ERROR` `WARN` `INFO` `DEBUG` `TRACE`
-- 线程ID
+- 进程ID
 - `---` 分离真正日志信息的开始
 - 线程名称:`[]`包括
 - 日志名称
 - 日志信息
 
-**注意:Logbak 没有 `FATAL`级别，会映射到`ERROR`**
+**注意:Logbak 没有 `FATAL`级别，会映射到`ERROR`**	
 
 
 #### Console Output
+```
+$ java -jar myapp.jar --debug # 命令行设置日志级别
+```
 
+##### Color-coded Output
+终端支持ANSI，彩色日志输出可以增加日志的可读性。`spring.output.ansi.enabled`设定支持的值而覆盖自动检测的值。
+
+色彩码可以使用 `%clr` 转换词
+
+Level | Color
+------|------
+`FATAL` | Red
+`ERROR` | Red
+`WARN` | Yellow
+`INFO` | Green
+`DEBUG` | Green
+`TRACE` | Greee
+
+`%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){yellow}` 自定义色彩
+
+支持的格式和色彩
+- `blue`
+- `cyan`
+- `faint`
+- `green`
+- `magenta`
+- `red`
+- `yellow`
+
+#### File Output
+需要将日志输出到日志文件则需要设置:`logging.file` `logging.path` 属性值
+
+`logging.file` | `logging.path` | Example | Description
+------|------|------|------
+(none) | (none) | | 只有终端日志
+Specific file | (none) | `my.log` | 日志输出到指定文件，路径可以相对或绝对
+(none) | Specific directory | `/var/log` | 日志输出到指定目录的`spring.log`文件中 
+
+
+`logging.file.max-size` 每个文件的最大值
+
+`logging.file.max-history` 每个文件保存的时间
+
+日志系统比应用生命周期前实例化，日志的属性值不能使用`property` 文件加载
+
+#### Log Levels
+```properties
+logging.level.root=WARN
+logging.level.org.springframework.web=DEBUG
+logging.level.org.hibernate=ERROR
+```
+
+#### Log Groups
+
+```properties
+logging.group.tomcat=org.apache.catalina, org.apache.coyote, org.apache.tomcat
+
+logging.level.tomcat=TRACE
+```
+
+
+#### Custom Log Configuration
+1. 在`classpath`中放置合适的类包
+2. 在类路径下或Spring `Environment` 属性`logging.config`指定的位置提供合适的文件
+
+通过`org.springframework.boot.logging.LoggingSystem` 系统属性，可以强制SpringBoot使用特定的日志，值必须为`LoggingSystem`实现的全类名
+
+因为日志的初始化在`ApplicationContext`前，因此不能通过Spring的`@Configuration`文件的 `@PropertySources`来控制，只能通过系统变量来控制日志
+
+ Logging System | Customization
+------|------
+Logback | `logback-spring.xml`,`logback-spring.groovy`,`logback.xml`, or `logback.groovy`
+Log4j2 | `log4j2-spring.xml` `log4j2.xml`
+JDK (Java Util Logging) | `logging.properties`
+
+Spring `Environment` 与系统属性的转换关系：
+
+Spring Environment|	System Property	| Comments
+------|------|------
+`logging.exception-conversion-word`| `LOG_EXCEPTION_CONVERSION_WORD`|The conversion word used when logging exceptions.
+`logging.file` | `LOG_FILE` | If defined, it is used in the default log configuration.
+`logging.file.max-size` | `LOG_FILE_MAX_SIZE` |Maximum log file size (if LOG_FILE enabled). (Only supported with the default Logback setup.)
+`logging.file.max-history` | `LOG_FILE_MAX_HISTORY` |Maximum number of archive log files to keep (if LOG_FILE enabled). (Only supported with the default Logback setup.)
+`logging.path` | `LOG_PATH` | If defined, it is used in the default log configuration.
+`logging.pattern.console` | `CONSOLE_LOG_PATTERN` | The log pattern to use on the console (stdout). (Only supported with the default Logback setup.)
+`logging.pattern.dateformat` | `LOG_DATEFORMAT_PATTERN` | Appender pattern for log date format. (Only supported with the default Logback setup.)
+`logging.pattern.file` | `FILE_LOG_PATTERN` | The log pattern to use in a file (if LOG_FILE is enabled). (Only supported with the default Logback setup.)
+`logging.pattern.level` | `LOG_LEVEL_PATTERN`|The format to use when rendering the log level (default %5p). (Only supported with the default Logback setup.)
+`PID` | `PID` | The current process ID (discovered if possible and when not already defined as an OS environment variable).
+
+#### Logback Extensions -Logback 扩展插件
+SpringBoot提供多扩展可以在`logback-spring.xml`中使用
+
+##### Profile-specific Configuration
+logback中暴露SpringProfile的属性
+
+```xml
+<springProfile name="staging">
+	<!-- configuration to be enabled when the "staging" profile is active -->
+</springProfile>
+
+<springProfile name="dev | staging">
+	<!-- configuration to be enabled when the "dev" or "staging" profiles are active -->
+</springProfile>
+
+<springProfile name="!production">
+	<!-- configuration to be enabled when the "production" profile is not active -->
+</springProfile>
+```
+
+##### Environment Properties
+logback中暴露环境属性值
+
+```xml
+<springProperty scope="context" name="fluentHost" source="myapp.fluentd.host"
+		defaultValue="localhost"/>
+<appender name="FLUENT" class="ch.qos.logback.more.appenders.DataFluentAppender">
+	<remoteHost>${fluentHost}</remoteHost>
+	...
+</appender>
+```
+
+### JSON
+
+`Jackson` 是默认的推荐的库；
+
+#### Jackson
+`ObjectMapper` 会在Jackson类路径中包含时自动配置，`ObjectMapper` 有几个可以自定义的属性
+
+#### Gson
+`Gson`在类路径中包含Gson时会自动配置；`spring.gson.*`的几个配置项能够对进行自定义，控制一个或多的`GsonBuilderCustomizer`的使用
+
+#### JSON-B
+
+### Developing Web Applications
+
+#### The “Spring Web MVC Framework”
+```java
+@RestController
+@RequestMapping(value="/users")
+public class MyRestController {
+
+	@RequestMapping(value="/{user}", method=RequestMethod.GET)
+	public User getUser(@PathVariable Long user) {
+		// ...
+	}
+
+	@RequestMapping(value="/{user}/customers", method=RequestMethod.GET)
+	List<Customer> getUserCustomers(@PathVariable Long user) {
+		// ...
+	}
+
+	@RequestMapping(value="/{user}", method=RequestMethod.DELETE)
+	public User deleteUser(@PathVariable Long user) {
+		// ...
+	}
+
+}
+```
+
+#####  Spring MVC Auto-configuration
+SpringBoot的SpringMVC自动配置Bean：
+- `ContentNegotiatingViewResolver` 和 `BeanNameViewResolver`
+- 静态资源的获取，包括webjars
+- `Converter` `GenericConverter` `Formatter` 自动注册
+- `HttpMessageConverters` 支持
+- `MessageCodesResolver` 自动注册
+- `index.html` 支持
+- `Favicon` 定制
+- `ConfigurableWebBindingInitializer` 自动使用
+
+
+
+##### HttpMessageConverter
+`HttpMessageConverter` 转换HTTP请求和响应，默认String以UTF-8为编码
+
+自定义`HttpMessageConverter`：
+```java
+@Configuration
+public class MyConfiguration {
+
+	@Bean
+	public HttpMessageConverters customConverters() {
+		HttpMessageConverter<?> additional = ...
+		HttpMessageConverter<?> another = ...
+		return new HttpMessageConverters(additional, another);
+	}
+
+}
+```
+
+所有的`HttpMessageConverters` 会被自动添加到Converterslist中
+
+##### Custom JSON Serializers and Deserializers
+`@JsonComponent` 可以用于类上，也可以用在内部类中有`serializers` `deserializers` 的类上:
+```java
+@JsonComponent
+public class Example {
+
+	public static class Serializer extends JsonSerializer<SomeObject> {
+		// ...
+	}
+
+	public static class Deserializer extends JsonDeserializer<SomeObject> {
+		// ...
+	}
+}
+```
+所有的`@JsonComponent`会自动被`ApplicationContext`注册
+
+##### MessageCodesResolver
+`MessageCodesResolver` 会为从错误信息中渲染出错误信息生成错误码
+
+##### Static Content
+
+默认的SpringBoot的静态内容会在类路径的 `/static` `/public` `resources` `/META-INF/resources` 中，或者`ServletContext` 的根路径中。
+
+
+```properties
+spring.mvc.static-path-pattern=/resources/** #修改请求路径
+spring.resources.static-locations=/myresources/**           #修改静态资源位置
+
+# 缓存静态资源 需要修改静态资源文件名
+spring.resources.chain.strategy.content.enabled=true
+spring.resources.chain.strategy.content.paths=/**
+
+# 固定资源版本号
+spring.resources.chain.strategy.content.enabled=true
+spring.resources.chain.strategy.content.paths=/**
+spring.resources.chain.strategy.fixed.enabled=true
+spring.resources.chain.strategy.fixed.paths=/js/lib/
+spring.resources.chain.strategy.fixed.version=v12
+```
+
+##### Welcome Page
+先找静态资源路径下的`index.html`,然后再找`index`的模板；
+
+##### Custom Favicon
+在静态资源下找`favicon.ico`,然后在类路径下找这个文件
+
+##### Path Matching and Content Negotiation
+
+SpringBoot默认会禁用后缀匹配模式:`GET /projects/spring-boot.json` 不会匹配到`@GetMapping("/projects/spring-boot")`
+
+兼容HackSkill：
+`GET /projects/spring-boot?format=json` 可以映射到 `@GetMapping("/projects/spring-boot")`
+```properties
+spring.mvc.contentnegotiation.favor-parameter=true
+
+# We can change the parameter name, which is "format" by default:
+# spring.mvc.contentnegotiation.parameter-name=myparam
+
+# We can also register additional file extensions/media types with:
+spring.mvc.contentnegotiation.media-types.markdown=text/markdown
+```
+
+
+使用后缀匹配
+```properties
+spring.mvc.contentnegotiation.favor-path-extension=true
+spring.mvc.pathmatch.use-suffix-pattern=true
+```
+开放特定后缀的匹配:
+```properties
+spring.mvc.contentnegotiation.favor-path-extension=true
+spring.mvc.pathmatch.use-registered-suffix-pattern=true
+
+# You can also register additional file extensions/media types with:
+# spring.mvc.contentnegotiation.media-types.adoc=text/asciidoc
+```
+
+##### ConfigurableWebBindingInitializer
+SpringMVC使用 `WebBindingInitializer` 初始化`WebDataBinder`,也可以`ConfigurableWebBindingInitializer` 创建自定义的`@Bean`
+
+##### Template Engines
+- FreeMarker
+- Groovy
+- Thymeleaf
+- Mustache
+
+将文件放在`src/main/resources/templates` 或者 `classpath*:/templates/`
+
+##### Error Handling
+
+自定义`/error`请求
+1. 实现`ErrorController` 
+2. 注册bean
+
+或者  
+注册`ErrorAttributes` beans
+
+继承`BasicErrorController` 自定消费的特定的`Content-Type`:
+```java
+public CustomerErrorController extends BasicErrorController{
+	@RequestMapping(produces="text/html")
+	public String error(){
+		return '';
+	}
+}
+```
+
+`@ControllerAdvice` 自定义JSON或特定请求的或异常的处理:
+```java
+@ControllerAdvice(basePackageClasses = AcmeController.class)
+public class AcmeControllerAdvice extends ResponseEntityExceptionHandler {
+
+	@ExceptionHandler(YourException.class)
+	@ResponseBody
+	ResponseEntity<?> handleControllerException(HttpServletRequest request, Throwable ex) {
+		HttpStatus status = getStatus(request);
+		return new ResponseEntity<>(new CustomErrorType(status.value(), ex.getMessage()), status);
+	}
+
+	private HttpStatus getStatus(HttpServletRequest request) {
+		Integer statusCode = (Integer) request.getAttribute("javax.servlet.error.status_code");
+		if (statusCode == null) {
+			return HttpStatus.INTERNAL_SERVER_ERROR;
+		}
+		return HttpStatus.valueOf(statusCode);
+	}
+
+}
+```
+
+复杂的映射方式
+```java
+public class MyErrorViewResolver implements ErrorViewResolver {
+
+	@Override
+	public ModelAndView resolveErrorView(HttpServletRequest request,
+			HttpStatus status, Map<String, Object> model) {
+		// Use the request or status to optionally return a ModelAndView
+		return ...
+	}
+
+}
+```
 
 
 
