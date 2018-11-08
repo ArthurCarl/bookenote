@@ -361,6 +361,189 @@ acme:
 ```
 
 #### Properties Conversion
+当外部属性值绑定到`@ConfigurationProperties` 的 beans 时，Spring Boot 会将值进行正确的转换；
+
+自定属性值类型转换的方式:
+1. 提供name 为 `conversionService` 的 `ConversionService` 类型 bean
+2. 通过 `CustomEditorConfigurer` 自定义 property edtiors 
+3. 自定义 `Converters`(在类上用`@ConfigurationPropertiesBinding`)
+
+##### Converting durations
+暴露了 `java.time.Duration` 属性时，以下格式的程序属性值是允许的:
+1. `long` ,除开`@DurationUint`指定时间单位，默认为毫秒(milliseconds)
+2. ISO-8601标准的`java.time.Duration`
+3. 当值和时间单位组合在一起时更加易读
+
+支持的时间单位:
+- `ns`
+- `us`
+- `ms`
+- `s`
+- `m`
+- `h`
+- `d`
+
+##### Converting Data Sizes
+暴露 `DataSize` 时，可以使用以下单位:
+- `long` 默认单位:byte ，可以用 `@DataSize`指定
+- 当值和时间单位组合在一起时更加易读
+
+支持的数据大小类型的单位:
+- `B`
+- `KB`
+- `MB`
+- `GB`
+- `TB`
+
+#### `@ConfigurationProperties` Validation
+当`@Validated` 和 `@ConfigurationProperties` 一起注解一个类时，SpringBoot会去对类中的属性值进行校验
+
+```java
+@ConfigurationProperties(prefix="acme")
+@Validated
+public class AcmeProperties {
+
+	@NotNull
+	private InetAddress remoteAddress;
+
+	@Valid
+	private final Security security = new Security();
+	
+	public static class Security {
+
+		@NotEmpty
+		public String username;
+
+		// ... getters and setters
+
+	}
+	// ... getters and setters
+
+}
+```
+
+创建自定义的 `Validator`,调用`configurationPropertiesValidator` 创建一个bean definition,`@Bean`方法需要声明为`static` ;此校验器在程序声明周期开始阶段创建，将方法声明为静态的则会使校验器在 `@Configuration`类实例化前被创建。
+
+```java
+@SpringBootApplication
+public class SamplePropertyValidationApplication implements CommandLineRunner {
+
+	private final SampleProperties properties;
+
+	public SamplePropertyValidationApplication(SampleProperties properties) {
+		this.properties = properties;
+	}
+
+	//自定义的校验器
+	@Bean
+	public static Validator configurationPropertiesValidator() {
+		return new SamplePropertiesValidator();
+	}
+
+	@Override
+	public void run(String... args) {
+		System.out.println("=========================================");
+		System.out.println("Sample host: " + this.properties.getHost());
+		System.out.println("Sample port: " + this.properties.getPort());
+		System.out.println("=========================================");
+	}
+
+	public static void main(String[] args) {
+		new SpringApplicationBuilder(SamplePropertyValidationApplication.class).run(args);
+	}
+
+}
+```
+
+#### `@ConfigurationProperties` vs `@Value`
+
+Feature | `@ConfigurationProperties` | `@Value`
+------|------|------
+Relaxed binding | Yes | No
+Meta-data support | Yes  | NO
+`SpEL` evaluation | Yes  | NO
+
+
+### Profiles
+```java
+@Configuration
+@Profile("production")
+public class ProductionConfiguration {
+
+	// ...
+
+}
+```
+
+用`spring.profiles.active` 指定激活哪个环境:
+1. `application.properties` 文件的 `spring.profiles.active=dev,hsqldb`
+2. `--spring.profiles.active=dev,hsqldb` 命令行
+
+#### Adding Active Profiles
+`spring.profiles.include` 会将增加激活的环境(多个配置)
+
+```properties
+---
+my.property:fromyamlfile
+---
+spring.profiles:production
+spring.profiles.include:
+	- proddb
+	- prodmq
+```
+
+#### Programmatically Setting Profiles
+调用 `SpringApplication.setAdditionalProfiles(…​)`
+
+#### Profile-specific Configuration Files
+- `application.properties` 文件
+- `application.yml`
+- `@ConfigurationProperties` 引用的文件
+
+### Logging
+Spring Boot 内部使用 Commons Logging,但是底层Log实现是对外开放的。
+
+#### Log Format
+```
+2014-03-05 10:57:51.112  INFO 45469 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet Engine: Apache Tomcat/7.0.52
+2014-03-05 10:57:51.253  INFO 45469 --- [ost-startStop-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2014-03-05 10:57:51.253  INFO 45469 --- [ost-startStop-1] o.s.web.context.ContextLoader            : Root WebApplicationContext: initialization completed in 1358 ms
+2014-03-05 10:57:51.698  INFO 45469 --- [ost-startStop-1] o.s.b.c.e.ServletRegistrationBean        : Mapping servlet: 'dispatcherServlet' to [/]
+2014-03-05 10:57:51.702  INFO 45469 --- [ost-startStop-1] o.s.b.c.embedded.FilterRegistrationBean  : Mapping filter: 'hiddenHttpMethodFilter' to: [/*]
+```
+输出内容如下:
+- 日期和时间:精确到毫秒，便排序
+- 日志级别:`ERROR` `WARN` `INFO` `DEBUG` `TRACE`
+- 线程ID
+- `---` 分离真正日志信息的开始
+- 线程名称:`[]`包括
+- 日志名称
+- 日志信息
+
+**注意:Logbak 没有 `FATAL`级别，会映射到`ERROR`**
+
+
+#### Console Output
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
