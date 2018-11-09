@@ -583,6 +583,23 @@ public class Developer implements IDeveloper{
 
 
 
+------
+# Spring Validation
+`Validator` 接口可以在应用各层中使用
+
+`DataBinder` 和 `Validator` 共同组成了 `validation` 包，应用于但不局限于MVC框架
+
+`DataBinder` 和 `BeanWrapper` 都使用 `PropertyEditorSupport` 的实现进行属性值得解析和格式
+
+`core.convert` 包提供通用的类型转换工具，而 `format` 包则用于格式化UI的输入值；但是可以使用 `PropertyEditorSupport` 替代
+
+
+
+
+
+
+
+
 
 
 
