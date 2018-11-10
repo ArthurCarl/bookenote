@@ -365,7 +365,7 @@ acme:
 
 自定属性值类型转换的方式:
 1. 提供name 为 `conversionService` 的 `ConversionService` 类型 bean
-2. 通过 `CustomEditorConfigurer` 自定义 property edtiors 
+2. 通过 `CustomEditorConfigurer` 自定义 property edtiors
 3. 自定义 `Converters`(在类上用`@ConfigurationPropertiesBinding`)
 
 ##### Converting durations
@@ -408,7 +408,7 @@ public class AcmeProperties {
 
 	@Valid
 	private final Security security = new Security();
-	
+
 	public static class Security {
 
 		@NotEmpty
@@ -520,7 +520,7 @@ Spring Boot 内部使用 Commons Logging,但是底层Log实现是对外开放的
 - 日志名称
 - 日志信息
 
-**注意:Logbak 没有 `FATAL`级别，会映射到`ERROR`**	
+**注意:Logbak 没有 `FATAL`级别，会映射到`ERROR`**
 
 
 #### Console Output
@@ -560,7 +560,7 @@ Level | Color
 ------|------|------|------
 (none) | (none) | | 只有终端日志
 Specific file | (none) | `my.log` | 日志输出到指定文件，路径可以相对或绝对
-(none) | Specific directory | `/var/log` | 日志输出到指定目录的`spring.log`文件中 
+(none) | Specific directory | `/var/log` | 日志输出到指定目录的`spring.log`文件中
 
 
 `logging.file.max-size` 每个文件的最大值
@@ -809,7 +809,7 @@ SpringMVC使用 `WebBindingInitializer` 初始化`WebDataBinder`,也可以`Confi
 ##### Error Handling
 
 自定义`/error`请求
-1. 实现`ErrorController` 
+1. 实现`ErrorController`
 2. 注册bean
 
 或者  
@@ -894,4 +894,4 @@ public class MyErrorViewResolver implements ErrorViewResolver {
 
 
 
---
+----
