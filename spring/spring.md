@@ -576,9 +576,81 @@ public class Developer implements IDeveloper{
 
 #### IntroductionAdvisor 分支
 
+![IntroductionAdvisor类结构图](pic/IntroductionAdvisor类结构图.png)
+
+只有一个默认实现`DefaultIntroductionAdvisor`
+
+#### Ordered 作用
+让Advisor实现Ordered接口，可以确定进行AOP时的横切顺序，序号越小，优先级越高
+
+### SpringAOP的织入
+`org.springframework.aop.framework.ProxyFactory` 织入器
+
+#### `ProxyFactory`
+`ProxyFactory`需要二个基本的东西：
+1. 需要织入的目标对象
+2. Aspect-即Spring的Advisor  
+  - 非`Introduction` 的Advice；ProxyFactory会为Advice构造相应的Advisor(Pointcut.TRUE)
+  - `Introduction` 类型Advice：`IntroductionInfo`子类，构造`DefaultIntroductionAdvisor`;`DynamicInterceptorAdvice`子类实现报错
+
+SpringAOP默认采用的基于接口的动态代理，但是在以下三中情况时则采用基于类的代理：  
+- 目标类没有实现任何接口
+- `ProxyFactory` 的 `ProxyTargetClass` 属性值为True
+- `optimize` 属性值为True
+
+`Introduction` 的织入
+
+![AopProxy相关结构图](pic/AopProxy相关结构图.png)
+
+`ProxyConfig`的5个属性：
+1. `proxyTargetClass`-是否基于类进行代理
+2. `optimize`-代理对象是否需要进一步进行优化，为True时采用基于类进行代理
+3. `opaque`-代理对象是否可强转为Advised
+4. `exposeProxy`-生成代理对象时将代理对象绑定到`ThreadLocal`;目标对象需要访问当前代理对象，可以通过`AopContext.currentProxy()`取得；性能考虑，默认为false，
+5. `frozen`-true时，代理对象生成的各项信息配置完成不能更改
 
 
+**ProxyFactory继承层次类图**
+![ProxyFactory继承层次类图](pic/ProxyFactory继承层次类图.png)
 
+**ProxyFactory的兄弟**
+![ProxyFactory的兄弟](pic/ProxyFactory的兄弟.png)
+
+##### 容器的织入器- `ProxyFactoryBean`
+1. `ProxyFactoryBean`本质(Proxy + FactoryBean)
+2. `ProxyFactoryBean`的使用，独有的属性：  
+  - `proxyInterfaces`-设置基于接口的代理类型
+  - `interceptNames`-制定需要织入目标对象的Advice、拦截器和Advisor  
+    - 可以在`interceptName` 最后的一个元素的位置放置目标`bean`定义
+    - 元素名称后可以使用通配符
+  - `singleton`-在需要返回有状态的代理对象时使用singleton为true，如 Introduction的场合
+
+**注意：**  
+如果没有依赖与目标对象的依赖关系，则将目标对象的bean定义声明为内部bean，这样就不会出现 **该引用代理对象的地方，不慎引用了目标对象本身** 如下：
+```XML
+<bean id="taskProxy" class="org.springframework.aop.framework.ProxyFactoryBean">
+  <property name="target">
+    <bean class="...MockTask"/>
+  </property>
+  <property name="proxyInterfaces">
+    <list>
+      <value>.....ITask</value>
+    </list>
+  </property>
+</bean>
+```
+
+##### SpringAOP 的自动代理机制
+1. 自动代理的实现原理  
+SpringAOP自动代理建立在`BeanPostProcessor` 概念上
+2. 可用的`AutoProxyCreator`  
+  - `BeanNameAutoProxyCreator`  
+  - `DefaultAdvisorAutoProxyCreator`
+3. 扩展`AutoProxyCreator`
+**SpringAOP自动代理的实现架构**
+![SpringAOP自动代理的实现架构](pic/SpringAOP自动代理的实现架构.png)
+
+#### TargetSource
 
 
 
