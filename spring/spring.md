@@ -666,8 +666,32 @@ SpringAOP自动代理建立在`BeanPostProcessor` 概念上
 `core.convert` 包提供通用的类型转换工具，而 `format` 包则用于格式化UI的输入值；但是可以使用 `PropertyEditorSupport` 替代
 
 
+#### TargetSource
+TargetSource 目标对象的容器
 
+TargetSource的实现类：
+1. `org.springframework.aop.target.SingletonTargetSource`
+2. `org.springframework.apo.target.PrototypeTargetSource`  
+  - 目标对象 `scope` 必须声明为 `prototype`
+  - 通过 `targetBeanName` 属性制定目标对象 `bean` 定义名称
+3. `org.springframework.aop.target.HowSwappableTargetSource`-数据源切换
+4. `CommonPoolTargetSource`
+5. `ThreadLocalTargetSource`
 
+## SpringAOP二世
+### `@AspectJ` 形式的SpringAOP
+1. 支持`@AspectJ` 形式的AOP，可以使用注解进行配置AOP
+2. 简化XML配置方式，提供了XSD
+
+SpringAOP只使用了AspectJ的类库进行Pointcun解析和匹配，最终实现机制还是SpringAOP自己的架构
+
+AspectJ织入方式：
+1. 编程式织入：`org.springframework.aop.aspectj.annotation.AspectJProxyFactory`
+2. 自动代理织入：`org.springframework.aop.aspectj.annotation.AnnotationAwareAspectJAutoProxyCreator`
+
+`@AspectJ`形式的Point表达式的标志符
+1. `*`-任意一个，如：`excution(* *(String))`
+2. `..`-多层次的类型声明，如：`excution(void cn.spring21..*.doSomething(String))`
 
 
 
