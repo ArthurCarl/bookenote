@@ -690,19 +690,68 @@ AspectJ织入方式：
 2. 自动代理织入：`org.springframework.aop.aspectj.annotation.AnnotationAwareAspectJAutoProxyCreator`
 
 `@AspectJ`形式的Point表达式的标志符
-1. `*`-任意一个，如：`excution(* *(String))`
-2. `..`-多层次的类型声明，如：`excution(void cn.spring21..*.doSomething(String))`
+- `execution`  
+	1. `*`-任意一个，如：`excution(* *(String))`
+	2. `..`-多层次的类型声明，如：`excution(void cn.spring21..*.doSomething(String))`
+- `within` -只接受类型声明
+- `this` 和 `target`  
+	AspectJ中`this`代调用方法一方所在的对象，`target`被调用方法所在的对象
+	SpringAOP中`this`指目标对象的代理对象，`target`指目标对象
+- `args`
+- `@within`-针对注解
+- `@target` 
+- `@args`	
+- `@annotation`
+
+`@AspectJ`形式的`Pointcut` 在SpringAOP中的真实面目  
+`org.springframework.aop.aspectj.AspectJExpressionPoincut` 表达式的具体实现
+
+#### `@AspectJ`形式的Advice
+Advice注解:
+- `@Before`
+- `@AfterReturning`
+- `@AfterThrowing`
+- `@After`
+- `@Around`-方法参数中的`JoinPoint`类型参数必须指定，且需要调用`ProceedingJoinPoint.proceed()`
+- `@DeclareParents`-Introduction型Advice
+
+#### `@AspectJ`中的Aspect更多话题
+##### Advice执行顺序
+1. Advice声明在同一个Aspect内时，优先级由声明顺序确定；Befor 优先级高先运行；After 优先级高后运行；
+2. Advice在不同的Aspect内时，优先级由`order`接口返回值确定
+ 
+## AOP应用案例
+FaultBarrier - 实现一个对应Fault处理Aspect，对系统中所有可能的Fault情况进行处理
+
+## SpringAOP扩展
+### 公开当前调用的代理对象的探讨
+同一对象内的嵌套方法调用拦截失效，需要暴露代理对象
+```java
+AopContext.currentProxy().doSomething();
+```
+以上前提是`ProxyConfig.exposeProxy` 为`true`;
 
 
+## SpringJDBC最佳实践
+
+### 基于Template的JDBC使用方式
+```java
+
+public <T> T execut(ConnectionCallback<T> action) throws DataAccessException;
+
+//-- 静态SQL不带参数 --//
+public <T> T execut(StatementCallback<T> action) throws DataAccessException;
+
+//-- 预编译语句 --//
+public <T> T execut(PreparedStatementCallback<T> action) throws DataAccessException;
+
+//-- 存储过程 --//
+public <T> T execut(CallableStatementCreator csc,CallableStatementCallback<T> action) throws DataAccessException;
+
+```
 
 
-
-
-
-
-
-
-
+### 基于操作对象的JDBC使用方式
 
 
 
