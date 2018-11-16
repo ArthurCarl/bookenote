@@ -860,21 +860,182 @@ public class MyErrorViewResolver implements ErrorViewResolver {
 	}
 
 }
+// ...
+
+private static class MyErrorPageRegistrar implements ErrorPageRegistrar {
+
+	@Override
+	public void registerErrorPages(ErrorPageRegistry registry) {
+		registry.addErrorPages(new ErrorPage(HttpStatus.BAD_REQUEST, "/400"));
+	}
+
+}
 ```
 
 
+##### SPring HATEOAS (Hypermedia as the engine of application state)
+`@EnableHypermediaSupport` 开启了，则`ObjectMapper`之前自定义的会失效
+
+##### CORS
+```java
+@Configuration //全局CORS配置
+public class MyConfiguration {
+
+	@Bean
+	public WebMvcConfigurer corsConfigurer() {
+		return new WebMvcConfigurer() {
+			@Override
+			public void addCorsMappings(CorsRegistry registry) {
+				registry.addMapping("/api/**");
+			}
+		};
+	}
+}
+```
+
+### JAX-RS and Jersey
+
+### Embedded Servlet Container Support
+`org.springframework.boot.web.servlet.ServletContextInitializer` Servlet上下文初始化接口，如果需要这个很适合作为现有`WebApplicationInitializer`的适配器
+
+`@WebServlet` `@WebFilter` `@WebListener` 能够被`@ServletComponentScan`扫到
 
 
+##### ServletWebServerApplicationContext
+`JettyServletWebServerFactory`  `TomcatServletWebServerFactory` `UndertowServletWebServerFactory`
+
+##### Customizing Embedded Servlet Containers
+```properties
+server.port=8080
+server.address=127.0.0.1
+server.servlet.session.persistence=boolean
+server.servlet.session.timeout=30
+server.servlet.session.store-dir=/temp
+server.servlet.session.cookie.*=
+server.error.path=Location of the error page
+```
+ServerProperties 类作用
+
+编程式自定义:
+```java
+@Component
+public class CustomizationBean implements WebServerFactoryCustomizer<ConfigurableServletWebServerFactory> {
+
+	@Override
+	public void customize(ConfigurableServletWebServerFactory server) {
+		server.setPort(9000);
+	}
+
+}
+
+@Bean
+public ConfigurableServletWebServerFactory webServerFactory() {
+	TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory();
+	factory.setPort(9000);
+	factory.setSessionTimeout(10, TimeUnit.MINUTES);
+	factory.addErrorPages(new ErrorPage(HttpStatus.NOT_FOUND, "/notfound.html"));
+	return factory;
+}
+```
+
+#### Reactive(反应式) Server Resources Configuration
+默认:
+- 同样的技术会提供给服务端和客户端
+- 客户端实例使用`WebClient.Builder`-SpringBoot自动配置的Bean构建的
 
 
+## Security
+`DefaultAuthenticationEventPublisher`发布验证事件
+
+### MVC Security
+`SecurityAutoConfiguration` `UserDetailsServiceAutoConfiguration` 实现的默认安全配置
+
+`WebSecurityConfigurerAdapter` 覆盖默认的安全认证，而不会让其他的安全认证失效
+
+覆盖`UserDetailsService` 配置:提供 `UserDetailsService` `AuthenticationProvider` `AuthenticationManager` 类型Bean
+
+访问规则可以由`WebSecurityConfigurerAdapter`自定义
+
+### WebFlux Security
+`spring-boot-starter-security` 加入依赖
+
+默认安全配置:`ReactiveSecurityAutoConfiguration` `UserDetailsServiceAutoConfiguration`;`WebFilterChainProxy`可以用于关闭默认的安全配置，而`UserDetailsService` 不会受影响;`ReactiveUserDetailsService` 和 `ReactiveAuthenticationManager`可以关闭掉 `UserDetailsService`
+
+`SecurityWebFilterChain` 访问规则
+```java
+@Bean
+public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
+	return http
+		.authorizeExchange()
+			.matchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
+			.pathMatchers("/foo", "/bar")
+				.authenticated().and()
+			.formLogin().and()
+		.build();
+}
+```
 
 
+### OAuth2
+`OAuth2ClientProperties`
 
+```properties
+spring.security.oauth2.client.registration.my-client-1.client-id=abcd
+spring.security.oauth2.client.registration.my-client-1.client-secret=password
+spring.security.oauth2.client.registration.my-client-1.client-name=Client for user scope
+spring.security.oauth2.client.registration.my-client-1.provider=my-oauth-provider
+spring.security.oauth2.client.registration.my-client-1.scope=user
+spring.security.oauth2.client.registration.my-client-1.redirect-uri-template=http://my-redirect-uri.com
+spring.security.oauth2.client.registration.my-client-1.client-authentication-method=basic
+spring.security.oauth2.client.registration.my-client-1.authorization-grant-type=authorization_code
 
+spring.security.oauth2.client.registration.my-client-2.client-id=abcd
+spring.security.oauth2.client.registration.my-client-2.client-secret=password
+spring.security.oauth2.client.registration.my-client-2.client-name=Client for email scope
+spring.security.oauth2.client.registration.my-client-2.provider=my-oauth-provider
+spring.security.oauth2.client.registration.my-client-2.scope=email
+spring.security.oauth2.client.registration.my-client-2.redirect-uri-template=http://my-redirect-uri.com
+spring.security.oauth2.client.registration.my-client-2.client-authentication-method=basic
+spring.security.oauth2.client.registration.my-client-2.authorization-grant-type=authorization_code
 
+spring.security.oauth2.client.provider.my-oauth-provider.authorization-uri=http://my-auth-server/oauth/authorize
+spring.security.oauth2.client.provider.my-oauth-provider.token-uri=http://my-auth-server/oauth/token
+spring.security.oauth2.client.provider.my-oauth-provider.user-info-uri=http://my-auth-server/userinfo
+spring.security.oauth2.client.provider.my-oauth-provider.user-info-authentication-method=header
+spring.security.oauth2.client.provider.my-oauth-provider.jwk-set-uri=http://my-auth-server/token_keys
+spring.security.oauth2.client.provider.my-oauth-provider.user-name-attribute=name
+```
 
+`OAuth2LoginAuthenticationFilter`默认只处理 `/login/oauth2/code/*` 路劲请求;可以使用`WebSecurityConfigurerAdapter`自定义Banner
 
+```java
+public class OAuth2LoginSecurityConfig extends WebSecurityConfigurerAdapter {
 
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+		http
+			.authorizeRequests()
+				.anyRequest().authenticated()
+				.and()
+			.oauth2Login()
+				.redirectionEndpoint()
+					.baseUri("/custom-callback");
+	}
+}
+```
+Google Provider
+```properties
+spring.security.oauth2.client.registration.my-client.client-id=abcd
+spring.security.oauth2.client.registration.my-client.client-secret=password
+spring.security.oauth2.client.registration.my-client.provider=google
+
+spring.security.oauth2.client.registration.google.client-id=abcd
+spring.security.oauth2.client.registration.google.client-secret=password
+```
+### Actuator Security
+默认下`/health` `/info` 外的请求会被要求验证权限
+
+`management.endpoints.web.exposure.include`
 
 
 
