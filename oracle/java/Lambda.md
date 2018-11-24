@@ -54,6 +54,7 @@ private static void lambda$create$0(int);
 
 
 [并发编程](https://www.ibm.com/developerworks/cn/java/j-jtp/index.html)
+[lambda](https://www.ibm.com/developerworks/cn/java/j-java8idioms5/index.html?ca=drs-)
 
 
 
