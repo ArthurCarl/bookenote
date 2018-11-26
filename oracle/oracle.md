@@ -1,3 +1,9 @@
+## row_number() over( partition by [column1...] order by [column1...] )
+```sql
+row_number() over( partition by [column1...] order by [column1...] )
+/** group by  但是比group by 简洁**/
+```
+
 ## 自定义数据类型和游标
 ```sql
 create or replace package body test_lu is
