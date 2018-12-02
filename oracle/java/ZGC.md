@@ -9,4 +9,4 @@
 
 
 
-![ZGC周期](../../ZGC周期.png)
+![ZGC周期](../../img/ZGC周期.png)
