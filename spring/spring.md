@@ -694,6 +694,47 @@ AspectJ织入方式：
 2. `..`-多层次的类型声明，如：`excution(void cn.spring21..*.doSomething(String))` 表示包下任何层级
 
 
+## Spring 事务
+
+设计原则：让事物管理的关注点与数据访问关注点相分离。
+
+`org.springframework.transaction.PlatformTransactionManager` 是Spring事务抽象架构的核心接口；
+
+LocalMap-将资源与本线程绑定
+
+NESTED-内部子事务的处理内容属于当前外层事务的一部分，不能独立与外层事务存在，与外层事务共有事务状态；通过 `savepoint` 创建的  
+NEW-新事物独立与当前事务而存在
+
+![事务概览](pic/事务概览.png)
+
+
+
+## SpringMVC
+
+![SpringMVC图](pic/SpringMV流程.png)
+
+1. web层
+  - HandlerMapping 处理Web请求与具体请求处理控制器间的映射匹配
+  - LocaleResolver 国家化处理
+  - ViewResovler 视图选择
+2. 表现层，使用逻辑命名视图策略，通过ViewResolver和View分离视图选择和渲染与具体控制器间的耦合
+
+### DispatcherServlet
+`DispatcherServlet` 处理流程：
+1. `HandlerMapping` -请求处理的协调
+2. `Controller` -请求的具体处理者，返回ModelAndView实例
+3. ViewResolver和View
+  - 获取模型数据(Model)
+  - 获取视图模版文件
+  - 结合视图和模版数据，使用相应视图技术API生成最终视图结果
+  - 通过HttpServletResponse数据到客户端
+  - done
+
+HanlerMapping三种Spring实现
+- `SimpleUrlHandlerMapping`
+- `ControllerClassNameHandlerMapping`
+- `DefaultAnnotationHandlerMapping`
+
 
 
 
