@@ -283,3 +283,471 @@ HasFeatures localFeatures() {
       .build();
 }
 ```
+
+## Spring Cloud Config
+
+### 服务端
+Config资源:
+```
+/{application}/{profile}[/{label}]
+/{application}-{profile}.yml
+/{label}/{application}-{profile}.yml
+/{application}-{profile}.properties
+/{label}/{application}-{profile}.properties
+```
+
+Spring Cloud Config 配置信息来源:
+
+```
+spring:
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/spring-cloud-samples/config-repo
+```
+
+### 客户端使用
+```
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>{spring-boot-docs-version}</version>
+    <relativePath /> <!-- lookup parent from repository -->
+</parent>
+
+<dependencyManagement>
+<dependencies>
+ <dependency>
+   <groupId>org.springframework.cloud</groupId>
+   <artifactId>spring-cloud-dependencies</artifactId>
+   <version>{spring-cloud-version}</version>
+   <type>pom</type>
+   <scope>import</scope>
+ </dependency>
+</dependencies>
+</dependencyManagement>
+
+<dependencies>
+<dependency>
+ <groupId>org.springframework.cloud</groupId>
+ <artifactId>spring-cloud-starter-config</artifactId>
+</dependency>
+<dependency>
+ <groupId>org.springframework.boot</groupId>
+ <artifactId>spring-boot-starter-test</artifactId>
+ <scope>test</scope>
+</dependency>
+</dependencies>
+
+<build>
+<plugins>
+        <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+        </plugin>
+</plugins>
+</build>
+
+```
+
+在 `bootstrap.properties` 或者 `application.properties` 中改变配置地址:  
+`spring.cloud.config.uri: http://myconfigserver.com`
+
+## Spring Cloud Config Server
+`@EnableConfigServer`
+
+`application.properties` 改变配置:  
+```
+server.port: 8888
+spring.cloud.config.server.git.uri: file://${user.home}/config-repo #配置文件仓库
+```
+
+### Environment Repository
+`EnvironmentRepository` 的三个参数:
+- `{application}` 对应于`spring.application.name`
+- `{profile}` 对应于`spring.profiles.active` 逗号分隔
+- `{label}` 对应服务端`versioned`
+
+`Label` - `foo/bar`使用 `foo(_)bar`在URL中。
+
+#### SSL
+```
+spring:
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://example.com/my/repo
+          skipSslValidation: true # 校验SSL
+```
+
+#### HTTP连接超时设置
+```
+spring:
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://example.com/my/repo
+          timeout: 4
+```
+
+#### 模式匹配和多仓库
+```
+spring:
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/spring-cloud-samples/config-repo
+          repos:
+            development:
+              pattern:
+                - '*/development'
+                - '*/staging'
+              uri: https://github.com/development/config-repo
+            staging:
+              pattern:
+                - '*/qa'
+                - '*/production'
+              uri: https://github.com/staging/config-repo
+              cloneOnStart: true
+```
+
+#### Authentication
+```
+spring:
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/spring-cloud-samples/config-repo
+          username: trolley
+          password: strongpassword
+```
+##### GIT SSH
+```
+spring:
+  cloud:
+    config:
+      server:
+        git:
+          uri: git@gitserver.com:team/repo1.git
+          ignoreLocalSshSettings: true
+          hostKey: someHostKey
+          hostKeyAlgorithm: ssh-rsa
+          privateKey: |
+                       -----BEGIN RSA PRIVATE KEY-----
+                       MIIEpgIBAAKCAQEAx4UbaDzY5xjW6hc9jwN0mX33XpTDVW9WqHp5AKaRbtAC3DqX
+                       IXFMPgw3K45jxRb93f8tv9vL3rD9CUG1Gv4FM+o7ds7FRES5RTjv2RT/JVNJCoqF
+                       ol8+ngLqRZCyBtQN7zYByWMRirPGoDUqdPYrj2yq+ObBBNhg5N+hOwKjjpzdj2Ud
+                       1l7R+wxIqmJo1IYyy16xS8WsjyQuyC0lL456qkd5BDZ0Ag8j2X9H9D5220Ln7s9i
+                       oezTipXipS7p7Jekf3Ywx6abJwOmB0rX79dV4qiNcGgzATnG1PkXxqt76VhcGa0W
+                       DDVHEEYGbSQ6hIGSh0I7BQun0aLRZojfE3gqHQIDAQABAoIBAQCZmGrk8BK6tXCd
+                       fY6yTiKxFzwb38IQP0ojIUWNrq0+9Xt+NsypviLHkXfXXCKKU4zUHeIGVRq5MN9b
+                       BO56/RrcQHHOoJdUWuOV2qMqJvPUtC0CpGkD+valhfD75MxoXU7s3FK7yjxy3rsG
+                       EmfA6tHV8/4a5umo5TqSd2YTm5B19AhRqiuUVI1wTB41DjULUGiMYrnYrhzQlVvj
+                       5MjnKTlYu3V8PoYDfv1GmxPPh6vlpafXEeEYN8VB97e5x3DGHjZ5UrurAmTLTdO8
+                       +AahyoKsIY612TkkQthJlt7FJAwnCGMgY6podzzvzICLFmmTXYiZ/28I4BX/mOSe
+                       pZVnfRixAoGBAO6Uiwt40/PKs53mCEWngslSCsh9oGAaLTf/XdvMns5VmuyyAyKG
+                       ti8Ol5wqBMi4GIUzjbgUvSUt+IowIrG3f5tN85wpjQ1UGVcpTnl5Qo9xaS1PFScQ
+                       xrtWZ9eNj2TsIAMp/svJsyGG3OibxfnuAIpSXNQiJPwRlW3irzpGgVx/AoGBANYW
+                       dnhshUcEHMJi3aXwR12OTDnaLoanVGLwLnkqLSYUZA7ZegpKq90UAuBdcEfgdpyi
+                       PhKpeaeIiAaNnFo8m9aoTKr+7I6/uMTlwrVnfrsVTZv3orxjwQV20YIBCVRKD1uX
+                       VhE0ozPZxwwKSPAFocpyWpGHGreGF1AIYBE9UBtjAoGBAI8bfPgJpyFyMiGBjO6z
+                       FwlJc/xlFqDusrcHL7abW5qq0L4v3R+FrJw3ZYufzLTVcKfdj6GelwJJO+8wBm+R
+                       gTKYJItEhT48duLIfTDyIpHGVm9+I1MGhh5zKuCqIhxIYr9jHloBB7kRm0rPvYY4
+                       VAykcNgyDvtAVODP+4m6JvhjAoGBALbtTqErKN47V0+JJpapLnF0KxGrqeGIjIRV
+                       cYA6V4WYGr7NeIfesecfOC356PyhgPfpcVyEztwlvwTKb3RzIT1TZN8fH4YBr6Ee
+                       KTbTjefRFhVUjQqnucAvfGi29f+9oE3Ei9f7wA+H35ocF6JvTYUsHNMIO/3gZ38N
+                       CPjyCMa9AoGBAMhsITNe3QcbsXAbdUR00dDsIFVROzyFJ2m40i4KCRM35bC/BIBs
+                       q0TY3we+ERB40U8Z2BvU61QuwaunJ2+uGadHo58VSVdggqAo0BSkH58innKKt96J
+                       69pcVH/4rmLbXdcmNYGm6iu+MlPQk4BUZknHSmVHIFdJ0EPupVaQ8RHT
+                       -----END RSA PRIVATE KEY-----
+```
+
+#####  Force  Pull/Deleting untracked branches/refreshRate Git Repository
+```
+spring:
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://git/common/config-repo.git
+          force-pull: true
+          repos:
+            team-a:
+                pattern: team-a-*
+                uri: http://git/team-a/config-repo.git
+                force-pull: true
+            team-b:
+                pattern: team-b-*
+                uri: http://git/team-b/config-repo.git
+                force-pull: true
+            team-c:
+                pattern: team-c-*
+                uri: http://git/team-a/config-repo.git
+          deleteUntrackedBranches: true
+          refreshRate:30 #30秒刷新一次
+```
+
+#### Accessing Backends Through a Proxy
+```
+spring:
+  profiles:
+    active: git
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/spring-cloud-samples/config-repo
+          proxy:
+            https:
+              host: my-proxy.host.io
+              password: myproxypassword
+              port: '3128'
+              username: myproxyusername
+              nonProxyHosts: example.com
+```
+
+#### JDBC Backends
+`JdbcEnvironmentRepository`
+
+#### 组合
+```
+spring:
+  profiles:
+    active: composite
+  cloud:
+    config:
+      server:
+        composite:
+        -
+          type: svn
+          uri: file:///path/to/svn/repo
+        -
+          type: git
+          uri: file:///path/to/rex/git/repo
+        -
+          type: git
+          uri: file:///path/to/walter/git/repo
+```
+
+#### 属性值覆盖
+```
+spring:
+  cloud:
+    config:
+      server:
+        overrides:
+          foo: bar
+```
+
+### Health Indicator
+```
+spring:
+  cloud:
+    config:
+      server:
+        health:
+          repositories:
+            myservice:
+              label: mylabel
+            myservice-dev:
+              name: myservice
+              profiles: development
+```
+### Security
+
+### 秘钥管理
+对称秘钥:
+`encrypt.key` 或者 `ENCRYPT_KEY`
+
+
+## 提供可替换格式
+可以使用`.yaml` `.yml` `.properties` 文件，不如Json，Json有数组`yaml`的值被映射为一个Map没有顺序
+
+
+## Push Notifications and Spring Cloud Bus
+`RefreshRemoteApplicationEvent` 只有在 Spring Cloud Bus 在配置中心服务和客户端都激活了才可以。
+
+## Spring Cloud Config Client
+### 配置 Bootstrap
+`bootstrap.yml` 中设置 `spring.cloud.config.uri`
+
+### 客户端配置立即失败
+`spring.cloud.config.fail-fast=true`
+
+### 配置重连
+1. `spring.cloud.config.fail-fast=true`
+2. 添加依赖`spring-retry`和`spring-boot-starter-aop`
+3. `spring.cloud.config.retry.*` 重连配置
+
+### 远程的配置文件
+服务端 `/{name}/{profile}/{label}` ，和客户端以下方式对应:  
+- name = `${spring.application.name}`
+- profile = `${spring.profiles.active}`(`Environment.getActiveProfiles()`)
+- label = 'master'
+
+以上都可以使用`spring.cloud.config.*`进行自定义
+
+### 高可用
+`spring.cloud.config.uri` 配置多个URL，高可用
+
+服务端返回 `500` `401` 时，客户端不会更换请求URL，这2种响应都不是和高可用相关
+
+### 超时时长
+`spring.cloud.config.request-read-timeout` 默认秒
+
+### 安全
+```
+spring:
+  cloud:
+    config:
+     uri: https://myconfig.mycompany.com
+     username: user
+     password: secret
+--------
+spring:
+  cloud:
+    config:
+     uri: https://user:secret@myconfig.mycompany.com     
+```
+
+#### Health Indicator
+`health.config.enabled=false` 配置心跳关闭  
+
+`health.config.time-to-live` 缓存时间(毫秒)
+
+#### 自定义 ConfigServicePropertySourceLocator
+```java
+@Configuration
+public class CustomConfigServiceBootstrapConfiguration {
+    @Bean
+    public ConfigServicePropertySourceLocator configServicePropertySourceLocator() {
+        ConfigClientProperties clientProperties = configClientProperties();
+       ConfigServicePropertySourceLocator configServicePropertySourceLocator =  new ConfigServicePropertySourceLocator(clientProperties);
+        configServicePropertySourceLocator.setRestTemplate(customRestTemplate(clientProperties));
+        return configServicePropertySourceLocator;
+    }
+}
+```
+
+`resources/META-INF/spring.factories` 文件添加：  
+```
+org.springframework.cloud.bootstrap.BootstrapConfiguration = com.my.config.client.CustomConfigServiceBootstrapConfiguration
+```
+
+##  Spring Cloud Netflix
+- Service Discovery (Eureka)
+- Circuit Breaker (Hystrix)
+- Intelligent Routing (Zuul)
+- Client Side Load Balancing (Ribbon)
+
+## Service Discovery: Eureka Clients
+
+```xml
+<dependency>
+  <groupId>org.springframework.cloud</groupId>
+  <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+</dependency>
+```
+
+客户端配置文件中添加配置:  
+```
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/ # 默认Euroka地址
+```
+
+### Eureka 服务认证
+复杂认证方式:
+1. `DiscoveryClientOptionalArgs` 的 `@Bean`
+2. 注入`ClientFilter`
+
+### Status Page and Health Indicator
+```
+eureka:
+  instance:
+    statusPageUrlPath: ${server.servletPath}/info
+    healthCheckUrlPath: ${server.servletPath}/health
+```
+
+### Registering a Secure Application
+HTTPS的支持,在`EurekaInstanceConfig`中增加 :  
+```
+eureka.instance.[nonSecurePortEnabled]=[false]
+eureka.instance.[securePortEnabled]=[true]
+```
+### 健康检查
+开启客户端健康检查：  
+```
+eureka:
+  client:
+    healthcheck:
+      enabled: true
+```
+以上最好在`application.yml`中配置，在`bootstrap.yaml`会出现一些问题
+### Eureka Metadata for Instances and Clients
+1. hostname
+2. IP地址
+3. 端口
+4. 状态页面(status page)
+5. 健康检查
+
+通过`eureka.instance.metadataMap`添加新的源信息
+
+#### 改变Eureka 实例ID
+application.yml
+```
+eureka:
+  instance:
+    instanceId: ${spring.application.name}:${vcap.application.instance_id:${spring.application.instance_id:${random.value}}}
+```
+
+### Using the EurekaClient-Use to discover service instance
+原生EurekaClient:
+
+```java
+@Autowired
+private EurekaClient discoveryClient;
+
+public String serviceUrl() {
+    InstanceInfo instance = discoveryClient.getNextServerFromEureka("STORES", false);
+    return instance.getHomePageUrl();
+}
+```
+** 不要在`@PostConstruct`中使用 **
+
+### Netflix EurekaClient的替代方案
+1. Feign 和 Spring RestTemplate 通过Eureka服务的ID获取服务
+2. `DiscoveryClient`
+```java
+@Autowired
+private DiscoveryClient discoveryClient;
+
+public String serviceUrl() {
+    List<ServiceInstance> list = discoveryClient.getInstances("STORES");
+    if (list != null && list.size() > 0 ) {
+        return list.get(0).getUri();
+    }
+    return null;
+}
+```
+
+### 服务注册慢
+- 心跳检查
+- RenewInterval
+
+### Zone
+同Zone的客户端消费同Zone服务
+
+1. Eureka服务的部署
+2. `metadataMap`配置服务
+
+```
+eureka.instance.metadataMap.zone = zone2
+eureka.client.preferSameZoneEureka = true
+```
