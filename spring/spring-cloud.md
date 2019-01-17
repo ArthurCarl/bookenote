@@ -751,3 +751,176 @@ public String serviceUrl() {
 eureka.instance.metadataMap.zone = zone2
 eureka.client.preferSameZoneEureka = true
 ```
+
+
+## Service Discovery: Eureka Server
+groupId:`org.springframework.cloud`  
+artifactId:`spring-cloud-starter-netflix-eureka-server`
+
+
+### High Availability, Zones and Regions
+发送心跳保持注册状态更新，客户端有注册中心的缓存-不必每次请求都访问注册；
+
+每个Eureka服务器都是一个Eureka客户端，需要注册，不然会有大量日志
+
+
+### 单节点
+关闭客户端注册行为
+```
+server:
+  port: 8761
+
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    registerWithEureka: false
+    fetchRegistry: false
+    serviceUrl:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+```
+
+### 同伴感知
+Eureka 互相注册服务
+```
+---
+spring:
+ profiles: peer1
+eureka:
+ instance:
+   hostname: peer1
+ client:
+   serviceUrl:
+     defaultZone: http://peer2/eureka/
+
+---
+spring:
+ profiles: peer2
+eureka:
+ instance:
+   hostname: peer2
+ client:
+   serviceUrl:
+     defaultZone: http://peer1/eureka/
+```
+
+##  Circuit Breaker: Hystrix Clients
+
+![Hystrix Stream:Sample Apps](pic/Hystrix.png)
+
+1. 特定服务调用超过`circuitBreaker.requestVolumeThreshold`(默认:20)
+2. 故障百分比大于`circuitBreaker.errorThresholdPercentage`（默认值：> 50％）
+
+满足以上则断路器起作用，调用终止；开放人员可以提供断路的回调
+
+![Hystrix fallback prevents cascading failures](pic/HystrixFallback.png)
+
+断路器阻止级联失败且给高负荷、失败服务时间恢复；而回调也可以是Hystrix的另一种对调用、静态数据、空值敏感的保护，回调可以是链式的，这样第一个回调可以调用其他的服务-回到静态数据。
+
+### How to Include Hystrix
+groupID:`org.springframework.cloud`  
+artifactID:`spring-cloud-starter-netflix-hystrix`
+
+```java
+@SpringBootApplication
+@EnableCircuitBreaker
+public class Application {
+
+    public static void main(String[] args) {
+        new SpringApplicationBuilder(Application.class).web(true).run(args);
+    }
+
+}
+
+@Component
+public class StoreIntegration {
+
+    @HystrixCommand(fallbackMethod = "defaultStores")
+    public Object getStores(Map<String, Object> parameters) {
+        //do stuff that might fail
+    }
+
+    public Object defaultStores(Map<String, Object> parameters) {
+        return /* something useful */;
+    }
+}
+```
+
+### 广播安全上下文/使用SpringScopes
+`@HystrixCommand`中使用ThreadLocal上下文，按照如下处理
+
+```java
+@HystrixCommand(fallbackMethod = "stubMyService",
+    commandProperties = {
+      @HystrixProperty(name="execution.isolation.strategy", value="SEMAPHORE")
+    }
+)
+...
+```
+
+### Health Indicator
+`/health`
+```
+{
+    "hystrix": {
+        "openCircuitBreakers": [
+            "StoreIntegration::getStoresByLocationLink"
+        ],
+        "status": "CIRCUIT_OPEN"
+    },
+    "status": "UP"
+}
+```
+
+### Hystrix Metrics Stream
+```
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+```
+
+
+## Hystrix Timeouts And Ribbon Clients
+
+覆盖Ribbon的超时时间
+
+### Hystrix Dashboard
+groupID:`org.springframework.cloud`  
+artifactID:`spring-cloud-starter-netflix-hystrix-dashboard`
+
+`@EnableHystrixDashboard` 访问 `/hystrix` 和 `/hystrix.stream`
+
+### Turbine
+Turbine 将相关的 `/hystrix.stream` 聚集到 `/turbine.stream`
+
+`@EnableTurbine` 需要加在 `main` 上
+
+```
+eureka:
+  instance:
+    metadata-map:
+      management.port: ${management.port:8081}
+```
+
+#### Clusters Endpoint
+`turbine.endpoints.clusters.enabled=true` 访问 `/clusters`
+```
+[
+  {
+    "name": "RACES",
+    "link": "http://localhost:8383/turbine.stream?cluster=RACES"
+  },
+  {
+    "name": "WEB",
+    "link": "http://localhost:8383/turbine.stream?cluster=WEB"
+  }
+]
+```
+
+### Turbine Stream
+Hystrix 向Turbin推送metrics：
+1. client添加依赖 `spring-cloud-netflix-hystrix-stream` 和 `spring-cloud-starter-stream-*`
+2. Server端,添加 `@EnableTurbineStream` ,依赖 `spring-boot-starter-webflux`
+
+------
