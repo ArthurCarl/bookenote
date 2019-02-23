@@ -137,3 +137,41 @@ public class ApplicationConfiguration extends AsyncConfigurerSupport {
 
 }
 ```
+
+
+# Spring Security
+## 依赖
+### Spring Boot
+```xml
+<dependencies>
+    <!-- ... other dependency elements ... -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+</dependencies>
+```
+### Maven
+```xml
+<dependencyManagement>
+    <dependencies>
+        <!-- ... other dependency elements ... -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-bom</artifactId>
+            <version>5.2.0.BUILD-SNAPSHOT</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+
+## Servlet Applications 配置
+### JAVA配置
+1. `@EnableWebSecurity` 与 `WebSecurityConfiguration`
+2. `AbstractSecurityWebApplicationInitializer`	
+	- 非Spring项目:继承`AbstractSecurityWebApplicationInitializer` 构造方法传递`super(WebSecurityConfig.class)`
+	- Spring项目:直接继承`AbstractSecurityWebApplicationInitializer`;`getRootConfigClasses()`中添加`WebSecurityConfig.class`类
+	
+
