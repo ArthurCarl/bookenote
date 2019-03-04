@@ -175,3 +175,69 @@ public class ApplicationConfiguration extends AsyncConfigurerSupport {
 	- Spring项目:直接继承`AbstractSecurityWebApplicationInitializer`;`getRootConfigClasses()`中添加`WebSecurityConfig.class`类
 	
 
+## Architecture and Implementation
+
+#### `SecurityContextHolder` `SecurityContext` `Authentication`
+`SecurityContextHolder` 核心:存储应用安全上下文,默认为`ThreadLocal`
+
+改变策略的2中方式: `SecurityContextHolder` 的JavaDoc;
+
+`Authentication` - principal用户信息  
+
+`GrantedAuthority` -权限
+
+Summary
+- `SecurityContextHolder` 访问 `SecurityContext`
+- `SecurityContext` 持有 `Authentication`
+- `Authentication` 用户信息
+- `GrantedAuthority` 用户的权限
+- `UserDetails` 自定义DAO用户的必要认证信息
+- `UserDetailsService` 创建`UserDetails`
+
+### `Authentication`
+- 用户名、密码实例化一个`UsernamePasswordAuthenticationToken`(Authentication 接口实现类)对象
+- `AuthenticationManager`校验，返回`Authentication`成功的认知信息
+- `SecurityContextHolder.getContext().setAuthentication(…​)` 认证成功
+
+### `Authentication` 网站中应用
+- `ExceptionTranslationFilter` -处理认证时可能的异常
+- `AuthenticationEntryPoint` -
+- 认证机制(`AuthenticationManager`调用)
+
+### `SecurityContextPersistenceFilter`
+在每个请求间将 `SecurityContext` 作为 `HttpSession`的属性保存；请求完成时,清除`SecurityContextHolder`;
+
+在无状态的Rest服务中，也需要将`SecurityContextPersistenceFilter`包含在拦截器链中，负责每个请求结束时清除`SecurityContextHolder`;
+
+### Access-Control
+安全对象-需要保护的方法、web请求；每个安全对象类型都有对应得拦截器(`interceptor`)
+
+`AbstractSecurityInterceptor` 处理请求:
+- 寻找当前请求的配置属性
+- 安全对象、`Authentication`、配置属性值提交给`AccessDecisionManager`,进行认证
+- 或许改变`Authentication`在调用时
+- 安全对象的通过认证继续执行
+- `AfterInvocationManager`配置的话，执行
+
+`Configuration Attributes` - `AbstractSecurityInterceptor` 有特殊含义的`String`,由`ConfigAttribute`接口呈现;可以是角色名、可以有更多含义取决于`AccessDecisionManager`的实现理念。
+
+`RunAsManager`-伪装身份
+
+`AfterInvocationManager`-方法完成后
+
+支持三种安全对象类型:`MethodInvocation` `JoinPoint` `FilterInvocation`;
+
+## Core Service
+`AuthenticationManager` `UserDetailsService` `AccessDecisionManager`
+
+`AuthenticationManager` 委托 `ProviderManager` 进行认证
+
+`DaoAuthenticationProvider` 是 `ProviderManager` 接口的实现类
+
+### `Password Encoding`
+`PasswordEncoder`单向加密，不提解密功能
+
+`DelegatingPasswordEncoder` 密码代理加密
+
+``
+
