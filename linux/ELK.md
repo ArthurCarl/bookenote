@@ -2,7 +2,51 @@
 
 ## Elasticsearch 
 
+### Install
 
+```
+# 下载
+$ curl -L -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.6.16.tar.gz
+
+# 解压 启动
+$ tar -xvf elasticsearch-5.6.16.tar.gz
+$ cd elasticsearch-5.6.16/bin
+$ ./elasticsearch 
+
+
+curl -X GET "localhost:9200/megacorp/employee/_search?pretty" -H 'Content-Type: application/json' -d'
+{
+    "query" : {
+        "bool": {
+            "must": {
+                "match" : {
+                    "last_name" : "smith" 
+                }
+            },
+            "filter": {
+                "range" : {
+                    "age" : { "gt" : 30 } 
+                }
+            }
+        }
+    }
+}
+'
+
+```
+
+``` shell
+$ curl 'http://localhost:9200/?pretty'
+```
+### 集群内的原理
+
+集群是由一个或者多个拥有相同 `cluster.name` 配置的节点组成
+
+#### 集群健康
+
+```shell
+curl -X GET "localhost:9200/_cluster/health?pretty"
+```
 
 ## Logstash 
 
