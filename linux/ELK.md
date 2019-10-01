@@ -327,6 +327,216 @@ $ curl -X POST "localhost:9200/website/blog/1/_update?retry_on_conflict=5&pretty
 
 <b>注意:</b>创建索引的时候就确定好主分片的数量 并且永远不会改变这个数量：因为如果数量变化了，那么所有之前路由的值都会无效，文档也再也找不到了。
 
+### 分析与分析器
+过程:
+1. 文本分词为倒序索引词条
+2. 词条标准格式化，提高可搜索性
+
+分词器:
+1. 字符过滤器
+2. 分词器
+3. Token过滤器
+
+
+``` shell
+# 测试分析器
+$ curl -X GET "localhost:9200/_analyze?pretty" -H 'Content-Type: application/json' -d'
+{
+  "analyzer": "standard",
+  "text": "Text to analyze"
+}
+'
+
+```
+
+#### 映射
+
+索引中每个文档都有 <b>类型</b> 。每种类型都有它自己的 <b>映射</b> ，或者模式定义。映射定义了类型中的域，每个域的数据类型，以及Elasticsearch如何处理这些域。映射也用于配置与类型有关的元数据。
+
+``` shell
+# 查看映射
+$ curl -X GET "localhost:9200/gb/_mapping/tweet?pretty"
+```
+
+映射只能新增，不可以修改  
+更新一个映射来添加一个新域，但不能将一个存在的域从 `analyzed` 改为 `not_analyzed` 
+
+
+```
+curl -X PUT "localhost:9200/gb?pretty" -H 'Content-Type: application/json' -d'
+{
+  "mappings": {
+    "tweet": {
+      "properties": {
+        "tweet": { "type": "string","analyzer": "english"},
+        "date": { "type": "date" },
+        "name": { "type": "string" },
+        "user_id": {"type": "long"}
+      }
+    }
+  }
+}
+'
+
+```
+
+#### 查询表达式
+
+##### 查询语句结构
+
+```
+# 典型
+{
+    QUERY_NAME: {
+        ARGUMENT: VALUE,
+        ARGUMENT: VALUE,...
+    }
+}
+
+# 特定字段
+{
+    QUERY_NAME: {
+        FIELD_NAME: {
+            ARGUMENT: VALUE,
+            ARGUMENT: VALUE,...
+        }
+    }
+}
+
+# 合并查询语句
+{
+    "bool": {
+        "must":     { "match": { "tweet": "elasticsearch" }},
+        "must_not": { "match": { "name":  "mary" }},
+        "should":   { "match": { "tweet": "full text" }},
+        "filter":   { "range": { "age" : { "gt" : 30 }} }
+    }
+}
+
+```
+
+###### 验证查询 `validate-query`
+``` shell
+$ curl -X GET "localhost:9200/gb/tweet/_validate/query?explain&pretty" -H 'Content-Type: application/json' -d'
+{
+   "query": {
+      "tweet" : {
+         "match" : "really powerful"
+      }
+   }
+}
+'
+
+```
+
+#### 一个字段多个映射
+
+```
+# 单映射
+"tweet": {
+    "type":     "string",
+    "analyzer": "english"
+}
+
+# 多映射
+"tweet": { 
+    "type":     "string",
+    "analyzer": "english",
+    "fields": {
+        "raw": { 
+            "type":  "string",
+            "index": "not_analyzed"
+        }
+    }
+}
+```
+
+#### 相关性
+评分的计算方式取决于查询类型 不同的查询语句用于不同的目的： `fuzzy` 查询会计算与关键词的拼写相似程度，`terms` 查询会计算 找到的内容与关键词组成部分匹配的百分比，但是通常我们说的 __relevance__ 是我们用来计算全文本字段的值相对于全文本检索词相似程度的算法。
+
+Elasticsearch 相似度算法 被定义为检索词频率/反向文档频率， _TF_/_IDF_:
+1. __检索词频率__
+2. __反向文档频率__  
+3. __字段长度准则__
+
+### 分布式检索
+
+文档的唯一性由 `_index`, `_type`, 和 `routing` values （通常默认是该文档的 `_id` ）的组合来确定。
+
+搜索被执行成一个两阶段过程，我们称之为 `query` then `fetch`;
+
+数据量大可以考虑使用 `scroll`
+
+### 索引
+
+1. `number_of_shards` 每个索引的主分片数,创建后不可修改  
+2. `number_of_replicas` 每个主分片的副本数，默认值是 `1`;可以随时修改  
+3. `analysis`分析器
+
+##### 自定义分析器
+
+```
+# 创建
+$ curl -X PUT "localhost:9200/my_index?pretty" -H 'Content-Type: application/json' -d'
+{
+    "settings": {
+        "analysis": {
+            "char_filter": {
+                "&_to_and": {
+                    "type":       "mapping",
+                    "mappings": [ "&=> and "]
+            }},
+            "filter": {
+                "my_stopwords": {
+                    "type":       "stop",
+                    "stopwords": [ "the", "a" ]
+            }},
+            "analyzer": {
+                "my_analyzer": {
+                    "type":         "custom",
+                    "char_filter":  [ "html_strip", "&_to_and" ],
+                    "tokenizer":    "standard",
+                    "filter":       [ "lowercase", "my_stopwords" ]
+            }}
+}}}
+'
+
+# 使用
+$ curl -X PUT "localhost:9200/my_index/_mapping/my_type?pretty" -H 'Content-Type: application/json' -d'
+{
+    "properties": {
+        "title": {
+            "type":      "string",
+            "analyzer":  "my_analyzer"
+        }
+    }
+}
+'
+
+```
+
+##### 索引别名重新索引
+```
+# alias
+## 创建新索引
+curl -X PUT "localhost:9200/my_index_v1?pretty"
+## 设置别名
+curl -X PUT "localhost:9200/my_index_v1/_alias/my_index?pretty"
+
+# _aliases
+## 重建索引并删除旧索引
+$ curl -X POST "localhost:9200/_aliases?pretty" -H 'Content-Type: application/json' -d'
+{
+    "actions": [
+        { "remove": { "index": "my_index_v1", "alias": "my_index" }},
+        { "add":    { "index": "my_index_v2", "alias": "my_index" }}
+    ]
+}
+'
+```
+
+### 分片原理
+
 
 ## Logstash 
 
