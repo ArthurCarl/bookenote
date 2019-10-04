@@ -16,6 +16,25 @@
 ------
 # K8S
 
+
+## HA
+__TTL Mechanism__ and __Lease__ 
+
+`bidirectional gRPC stream`
+
+## 自签名SSL证书
+
+```
+$ mkdir secrets
+$ openssl req -newkey rsa:4096 -nodes -sha256 -keyout secrets/domain.key -x509 -day 365 -out secrets/domain.crt
+$ ls secrets
+$ openssl rand -hex -out secrets/http.secret 8
+$ docker run -i httpd /bin/bash -c 'echo my-super-secure-password | /usr/local/apache2/bin/htpasswd -nBi user01' > secrets/registry_passwd
+$ kubectl create secret generic registry-secrets --from-file secrets/
+
+```
+
+
 ## 集群管理高级
 
 ### kubeconfig 高阶配置
