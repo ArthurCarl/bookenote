@@ -39,7 +39,7 @@ $ kubectl create secret generic registry-secrets --from-file secrets/
 
 ### kubeconfig 高阶配置
 
-
+![kubeconfig contains three parameters:user, cluster, and context](./e705eb01-9990-424f-8967-f63d4de49904.png)
 
 ### node 资源配置
 
