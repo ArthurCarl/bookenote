@@ -12,3 +12,22 @@
 10.熟悉常用NAS设备，精通分布式存储系统ceph 
 11.至少熟悉一种配置管理工具, 如salt, ansible等 
 12.掌握RAID，ipmi等服务器技术原理和应用 
+
+------
+# K8S
+
+## 集群管理高级
+
+### kubeconfig 高阶配置
+
+
+
+### node 资源配置
+
+### WebUI
+
+### RESTful API
+
+### Kubernetes DNS
+
+### Authentication and Authorization
