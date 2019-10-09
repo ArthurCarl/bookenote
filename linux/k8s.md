@@ -41,6 +41,55 @@ $ kubectl create secret generic registry-secrets --from-file secrets/
 
 ![kubeconfig contains three parameters:user, cluster, and context](./e705eb01-9990-424f-8967-f63d4de49904.png)
 
+__kubeconfig__ 管理集群、上下文、认证；可以在不同集群不同上下文进行环境的切换
+
+`kubectl config`
+
+![kubeconfig contains three parameters:user, cluster, and context](./e705eb01-9990-424f-8967-f63d4de49904.png)
+
+```
+# 查看 kubernetes 配置
+$ kubectl config view
+......
+
+# 备份
+$ cp ~/.kube/config ~/original-kubeconfig
+
+# 查看配置具体选项
+$ kubectl config set-credentials -h
+# 复制到新目录
+$ cp ~/original-kubeconfig ~/new-kubeconfig
+# 添加用户
+$ kubectl config set-credentials local@local.com --username=local-local --password=123qwe --kubeconfig="new-kubeconfig"
+```
+
+#### Context
+`Context` 包含了cluster, namespaces, user;
+
+```
+# 设置Context
+S kubectl config set-context <context_name> --user=<credential_name> --namespaces=<namespace_name> --cluster=<cluster_name>
+$ kubectl config set-context defalut/local/local --user=local@local.com --namespaces=defalut --cluster=cluster.local
+
+# 查看配置
+$ kubectl config view 
+
+# 当前上下文
+$ kubectl config current-context
+
+# 切换上下文
+$ kubectl config use-context defalut/local/local
+
+# 删除
+$ kubectl config delete-cluster local-cluster
+
+$ kubectl unset local@local.com
+
+$ cp ./original-kubeconfig ~/.kube/config
+
+```
+
+
 ### node 资源配置
 
 ### WebUI
