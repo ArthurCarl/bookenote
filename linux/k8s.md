@@ -39,8 +39,6 @@ $ kubectl create secret generic registry-secrets --from-file secrets/
 
 ### kubeconfig 高阶配置
 
-![kubeconfig contains three parameters:user, cluster, and context](./e705eb01-9990-424f-8967-f63d4de49904.png)
-
 __kubeconfig__ 管理集群、上下文、认证；可以在不同集群不同上下文进行环境的切换
 
 `kubectl config`
