@@ -19,3 +19,42 @@
 
 ## Spring Security Filter Chain
 ![SpringSecurityFilterChain](pic/SpringSecurityFilterChain.png)
+
+------
+# Spring Security Architectureß
+
+## Customizing Authentication Managers
+
+- 全局认证
+```java
+@Configuration
+public class ApplicationSecurity extends WebSecurityConfigurerAdapter {
+
+  // web stuff here
+  @Autowired//全局认证管理器ß
+  public initialize(AuthenticationManagerBuilder builder, DataSource dataSource) {
+    builder.jdbcAuthentication().dataSource(dataSource).withUser("dave")
+      .password("secret").roles("USER");
+  }
+
+}
+```
+
+- 局部认证
+```java
+@Configuration
+public class ApplicationSecurity extends WebSecurityConfigurerAdapter {
+
+  @Autowired
+  DataSource dataSource;
+
+  // web stuff here
+
+  @Override //局部
+  public configure(AuthenticationManagerBuilder builder) {
+    builder.jdbcAuthentication().dataSource(dataSource).withUser("dave")
+      .password("secret").roles("USER");
+  }
+
+}
+```
