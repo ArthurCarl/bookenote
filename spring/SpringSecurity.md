@@ -20,14 +20,6 @@
 ## Spring Security Filter Chain
 ![SpringSecurityFilterChain](pic/SpringSecurityFilterChain.png)
 
-<<<<<<< HEAD
-------
-# Spring Security Architectureß
-
-## Customizing Authentication Managers
-
-- 全局认证
-=======
 
 
 ------
@@ -52,18 +44,13 @@
 
 `UserDetailsService` 提供自定义的设置
 
->>>>>>> dbda34cd1fcfa006a388b2ad15ec16172d662946
 ```java
 @Configuration
 public class ApplicationSecurity extends WebSecurityConfigurerAdapter {
 
   // web stuff here
-<<<<<<< HEAD
-  @Autowired//全局认证管理器ß
-=======
 
   @Autowired //全局 AuthenticationManager
->>>>>>> dbda34cd1fcfa006a388b2ad15ec16172d662946
   public initialize(AuthenticationManagerBuilder builder, DataSource dataSource) {
     builder.jdbcAuthentication().dataSource(dataSource).withUser("dave")
       .password("secret").roles("USER");
@@ -72,10 +59,7 @@ public class ApplicationSecurity extends WebSecurityConfigurerAdapter {
 }
 ```
 
-<<<<<<< HEAD
 - 局部认证
-=======
->>>>>>> dbda34cd1fcfa006a388b2ad15ec16172d662946
 ```java
 @Configuration
 public class ApplicationSecurity extends WebSecurityConfigurerAdapter {
@@ -83,15 +67,9 @@ public class ApplicationSecurity extends WebSecurityConfigurerAdapter {
   @Autowired
   DataSource dataSource;
 
-<<<<<<< HEAD
-  // web stuff here
-
-  @Override //局部
-=======
    // web stuff here
 
   @Override //本地应用 AuthenticationManager
->>>>>>> dbda34cd1fcfa006a388b2ad15ec16172d662946
   public configure(AuthenticationManagerBuilder builder) {
     builder.jdbcAuthentication().dataSource(dataSource).withUser("dave")
       .password("secret").roles("USER");
@@ -99,8 +77,6 @@ public class ApplicationSecurity extends WebSecurityConfigurerAdapter {
 
 }
 ```
-<<<<<<< HEAD
-=======
 
 ### 授权/访问控制
 `AccessDecisionManager` 核心授权策略接口，框架提供了三个实现类，每个委托给`AccessDecisionVoter`链处理。
@@ -264,6 +240,4 @@ Summary
 
 `DelegatingPasswordEncoder` 密码代理加密
 
-``
 
->>>>>>> dbda34cd1fcfa006a388b2ad15ec16172d662946
