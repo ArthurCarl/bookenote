@@ -67,6 +67,32 @@ logins `logind`
 `systemctl add-wants multi-user.target my.local.service` muti-user.target add dependency `my.local.service`
 
 
+`systemd loggin` log messages produced by the kernel
+
+`journald` daemon help capture kernel and service logs.  
+message are stored in `/run` dir.With `journalctl` command directly access the logs;
+
+`/etc/systemd/journald.conf` file is `journald` configure file; 
+
+
+### Stratagems for a nonbooting system
+
+system can't boot :
+- resotre the system to a known-good state
+- bring the system up just enough to runa shell, and debuging interactively
+- Boot a separate system image, mount the risk system's filesystems, and investigate from there.
+
+#### Single-user mode
+
+`rescue.target` rescue mode. 
+
+``` bash
+# mnount -o rw,remount /dev/gpt/rootfs  / # remount dir /
+```
+
+
+## Access Control and Rootly Powers
+
 
 
 
