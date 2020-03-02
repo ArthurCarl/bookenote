@@ -110,7 +110,7 @@ Red Hat Style:
 
 `ssh -Y/X  remote-sys` 将远程机器的桌面在本地显示
 
-scp user@remote-sys:document.txt .` 将远程的文件复制到本地
+`scp user@remote-sys:document.txt .` 将远程的文件复制到本地
 
 ## 查找文件
 - `locate` -通过名字来查找文件

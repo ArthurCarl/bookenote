@@ -97,3 +97,206 @@ $ cp ./original-kubeconfig ~/.kube/config
 ### Kubernetes DNS
 
 ### Authentication and Authorization
+
+------- 
+#  minikube
+mac 更新后可能会出现 ` zsh: command not found: minikube `;  需要 ` brew link minikube `
+
+
+# CKA
+
+
+custom certificates : ` --cert-dir/certificatedsDir `
+
+external CA : ` --controllers=csrsigner `
+
+check certification expiration : ` kubeadm alpha certs check-expiration `
+
+turn off automatic certificate renewal : `  kubeadm upgrade apply/kubeadm upgrade node  ----certificate-renewal=false `
+
+ Manual certificate renewal : ` kubeadm alpha certs renew ` renew ` /etc/kubernetes/pki `
+
+ ### Renew certificates with the Kubernetes certificates API
+
+1. active built-in signer : ` --cluster-signing-cert-file ` and ` --cluster-signing-key-file `
+2. Create certificate signing requests (CSR) : ` kubeadm alpha certs renew --use-api `
+3. Approve certificate signing requests : `  kubectl certificate approve kubeadm-cert-kube-apiserver-ld526 `
+
+### Renew certificates with external CA
+
+ 1. Create certificate signing requests : `  kubeadm alpha certs renew --csr-only `
+ 
+### config resource
+
+#### ` LimitRange ` config CPU and Memory
+
+``` yaml
+  limits:
+  - max:
+      memory: 1Gi
+      cpu: 800m
+    min:
+      memory: 500Mi
+      cpu: 200m
+    default:
+      memory: 1Gi
+      cpu: 800m
+    defaultRequest:
+      memory: 1Gi      
+      cpu: 800m
+```
+
+#### ` ResourceQuota ` set ResourceQuota
+
+ResourceQuota constraine of all Container
+
+``` yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: mem-cpu-demo
+spec:
+  hard:
+    requests.cpu: "1"
+    requests.memory: 1Gi
+    limits.cpu: "2"
+    limits.memory: 2Gi
+    pods: "2"
+    persistentvolumeclaims: "1"
+    services.loadbalancers: "2"
+    services.nodeports: "0"
+
+```
+
+### Access Clusters Using the Kubernetes API
+
+``` bash
+# Check all possible clusters, as your .KUBECONFIG may have multiple contexts:
+kubectl config view -o jsonpath='{"Cluster name\tServer\n"}{range .clusters[*]}{.name}{"\t"}{.cluster.server}{"\n"}{end}'
+
+# Select name of cluster you want to interact with from above output:
+export CLUSTER_NAME="some_server_name"
+
+# Point to the API server referring the cluster name
+APISERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==\"$CLUSTER_NAME\")].cluster.server}")
+
+# Gets the token value
+TOKEN=$(kubectl get secrets -o jsonpath="{.items[?(@.metadata.annotations['kubernetes\.io/service-account\.name']=='default')].data.token}"|base64 --decode)
+
+# Explore the API with TOKEN
+curl -X GET $APISERVER/api --header "Authorization: Bearer $TOKEN" --insecure
+```
+
+### Accessing the API from within a Pod
+
+
+pod crt file tree : ` /var/run/secrets/kubernetes.io/serviceaccount/ca.crt `
+
+default namespace API : ` /var/run/secrets/kubernetes.io/serviceaccount/namespace `
+
+
+#### Without using a proxy
+
+``` yaml
+# Point to the internal API server hostname
+APISERVER=https://kubernetes.default.svc
+
+# Path to ServiceAccount token
+SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount
+
+# Read this Pod's namespace
+NAMESPACE=$(cat ${SERVICEACCOUNT}/namespace)
+
+# Read the ServiceAccount bearer token
+TOKEN=$(cat ${SERVICEACCOUNT}/token)
+
+# Reference the internal certificate authority (CA)
+CACERT=${SERVICEACCOUNT}/ca.crt
+
+# Explore the API with TOKEN
+curl --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" -X GET ${APISERVER}/api
+```
+
+## Access Services Running on Clusters
+
+### Accessing services running on the cluster
+
+1. ` services ` through public ips
+    - `NodePort` and `LoadBalancer`
+
+
+
+### Change the default StorageClass
+1. ` kubectl patch storageclass <your-class-name> -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}' `
+
+#### 
+
+``` yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-scheduler
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: my-scheduler-as-kube-scheduler
+subjects:
+- kind: ServiceAccount
+  name: my-scheduler
+  namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: system:kube-scheduler
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: scheduler
+    tier: control-plane
+  name: my-scheduler
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      component: scheduler
+      tier: control-plane
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        component: scheduler
+        tier: control-plane
+        version: second
+    spec:
+      serviceAccountName: my-scheduler
+      containers:
+      - command:
+        - /usr/local/bin/kube-scheduler
+        - --address=0.0.0.0
+        - --leader-elect=false
+        - --scheduler-name=my-scheduler
+        image: gcr.io/my-gcp-project/my-kube-scheduler:1.0
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 10251
+          initialDelaySeconds: 15
+        name: kube-second-scheduler
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 10251
+        resources:
+          requests:
+            cpu: '0.1'
+        securityContext:
+          privileged: false
+        volumeMounts: []
+      hostNetwork: false
+      hostPID: false
+      volumes: []
+```
