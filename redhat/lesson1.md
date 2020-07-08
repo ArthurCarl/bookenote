@@ -217,3 +217,93 @@ install package form the RHEL 8 instaallation disk ISO image
 - `yum history`
 - `yum history undo `
 - `yum update <pacakgename>`
+
+##### rpm
+
+- `rpm` is useful though to perform package queries
+- `rmp -qf /any/file`
+- `rpm -ql mypackage`
+- `rmp -qc mypacakge`
+- `rpm -qp --scripts mypackage-file.rmp ` 
+
+### systemd
+
+- managed items are called units
+- different unit types are available
+    - services
+    - mounts
+    - times
+    - and many more
+- `systemctl`
+- `systemctl enabel unit` auto start unit
+- config file in `/usr/lib/systemd/system` 
+- custom unit files are in `/etc/systemd/system`
+- run-time automatically generated unit files are in `/run/systemd`
+- don't modify a unit file in `/usr/lib/systemd/system`, but create a custom file in `/etc/systemd/system` that is used as an overlay
+- better : use `systemctl edit unit.service` to edit unit files
+- use `systemctl show` to show available parameters
+- using `systemctl-reload` may be required
+ 
+
+
+``` 
+systemctl cat vsftpd.service
+
+systemctl  show vsftpd
+
+systemctl edit vsftpd
+
+[Service]
+param=value
+
+systemctl daemon-reload 
+
+systemctl enable vsftpd
+``` 
+
+
+### Scheduling Tasks
+
+- cron is a daemon that triggers jobs on a regular basis
+- it works with diffrent configuration files that specify when a job should be started
+- use it for regular re-occurring jobs, like backup jobs
+- `at` is used for tasks that need to be started once
+- systemd Timers provide a new alternative to Cron
+
+#### Cron
+
+- user-specific cron jobs ,created using `crontab -e`
+- generic time-specific cron jobs in `/etc/cron.d`
+- scripts, executed on an hourly, daily, weekly, monthly basis
+- generic time-specific cron jobs in `/etc/crontab`(deprecated)
+
+##### Anacron
+
+- anacron is a service behind cron that takes care jobs are executed on a regular basis, but not at a specific time
+- it takes care of the jobs in `/etc/cron.{hourly,daily,weekly,monthly}`
+- configuration is in `/etc/anacrontab`
+
+###### systemd timers
+
+- systemd timers also allow for scheduling jobs at a regular basis, Cron however is still the standard
+- read `man 7 systemd-timer ` for more information about systemd timers
+- read `man 7 systemd-time` for specification of the time format to be used
+
+###### `at`
+
+- the `atd` service must be running to run once-only jobs using `at`
+- use `at <time>` to schedule a job
+    - type one or more job specifications in the at interactive shell
+    - user ctrl-D to close this shell 
+- use `atp` for a list of jobs currently scheduled
+- use `atrm` to remove jobs from the list
+
+###### `systemd-tmpfiles`
+
+- the `/usr/lib/tmpfiles.d` directory manages settings for creating, deleting and cleaning up of temporary files
+- the `systemd-tmpfiles-clean.timer` unit can be configured to automatically clean up temporary files.
+    - it triggers the `systemd-tmpfiles-clean.timer.service`
+    - this service runs `systemd-tmpfiles --clean`
+- the `/usr/lib/tmpfiles.d/tmp.conf` file contains settings for the automatic tmp file cleanup
+- when making modifications, copy the file to `/etc/tmpfils.d`
+- after making modifications to this file, use `systemd-tmpfiles --clean /etc/tmpfiles.d/tmp.conf` to ensure the file does not contain any errors
