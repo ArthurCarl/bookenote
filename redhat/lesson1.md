@@ -2,7 +2,7 @@ pwd
 whoami
 ip addr show
 free -m 
-df -h 
+df -h  
 cat /etc/host
 findmnt
 
@@ -307,3 +307,174 @@ systemctl enable vsftpd
 - the `/usr/lib/tmpfiles.d/tmp.conf` file contains settings for the automatic tmp file cleanup
 - when making modifications, copy the file to `/etc/tmpfils.d`
 - after making modifications to this file, use `systemd-tmpfiles --clean /etc/tmpfiles.d/tmp.conf` to ensure the file does not contain any errors
+
+## Configuring logging
+
+`rsyslogd` -> `/var/log` work with `systemd` or `systemd-journalctl`(`journalctl`)
+
+- `rsynlogd` service running 
+- the main configuration file is `/etc/rsyslog.conf`
+- snap-in files can be placed in `/etc/rsyslog.d`
+- each logger line containe three items
+    - facility: the specific facility that the log is created for
+    - severity: the severity from which should be logged
+    - destination: the file or other destination the log should be written to 
+- log files normally are in `/vat/log`
+- use the `logger` command to write messages to rsyslog manually
+
+### facility
+
+- `rsyslogd` is and must be backwards compatible with the archaic syslog service
+- in syslog, a fixed number of facilities was defined, like kern, authprive, cron and more
+- to work with services that don't have their own facility local{0..7} can be used
+- because of the lack of facilities, some services take care of their own logging and don't use rsyslog
+
+### `systemd-journald`
+
+- `systemd-journald` is the log service that is a part of systemd
+- it integrates well with `systemctl status <unit>` output
+- alternatively ,the `journald` command can be used to read log entries in the journal 
+- messages are logged also to rsyslogd , using the rsyslogd imjournal module
+- to make the journal persistent ,use `mkdir /var/log/journal`
+
+### keeping the system journal
+
+- the journal is written to `/run/log/journal`, which is automatically cleared on system reboot
+- eidt `/etc/systemd/journald.conf` to make the journal persistent across reboots
+- set the `Storage` parameter in this file to the appropriate value
+    - `persistent` will store the journal in the `/var/log/journal` directory. this directory will be created if it doesn't exist
+    - `volatile` stores the journal only in `/run/log/journal`
+    - `auto` will stores the journal only in `/var/log/journal` if that directory exists, and in `/run/log/journal` if no `/var/log/journal` exists
+
+### systemd jouranl log rotation
+
+- build-in log rotation for the journal runs monthly
+- the journal cannot grow beyond 10% of the size of the file system it is on
+- the journal will also make sure at least 15% of its file system will remain available as free space
+- these settings can be changed through `/etc/systemd/journal.conf`
+
+#### logrotate
+
+- logrotate is started through cron.daily to ensure that log files don't grow too big
+- main configuration is in `/etc/logrotate.conf` , snap-in files can be provided through `/etc/logrotate.d/`
+
+## manage storage
+
+BIOS MBR 4 partition
+UEFI GRT 128 partition
+
+#### storage options
+
+- Partitions: the classical solution, use in all cases
+    - use to allocate dedicated storage to specific types of data
+- LVM logical Volumes 
+    - userd at default installation of RHL
+    - adds flexibility to storage (resize, snapshots and more)
+- Stratis
+    - next generation Volume Managing Filesystem that uses thin provisioning by default
+    - Implemented in user space , which makes API access possible
+- Virtual Data Optimzier
+    - Focused on storing files in the most efficient way
+    - Manages deduplicated and compressed storage pools
+
+#### GPT and MBR Partitions
+
+- Master Boot Record (MBR) is part of the 1981 PC specification
+    - 512 bytes to store boot information
+    - 64 byte to store partitions
+    - place for 4 partitons only with a max, size of 2 TiB
+    - to use more partitions , extended and logical partitions must be used
+- GUID Partitions Table is a newer partition table (2010)
+    - More space to store partitons
+    - Used to overcome MBR limitations
+    - 128 partitions max
+
+
+#### create partitions with `parted`
+
+- while creating a partion, you do not automatically create a file system
+- the `parted` file system attribute only writes some unimportant file system metadata
+- in RHEL, `parted` is the default utility
+- Alternatively, use `fdisk` to work with MBR and `gdisk` to use GUID partitons
+
+##### Procedure 
+
+1. `parted /dev/sdb`
+2. `print` will show if there is a current partition table
+3. `mklabel msdos|gpt`
+4. `mkpart part-type name fs-type start end`
+    - `part-type`: applies to MBR only and sets primary, logical, or extended partition
+    - `name`: arbitrary name, required for GPT
+    - `fs-type`: does not modify the filesystem, but sets some irrelevant file system dependent metadata
+    - `start end`: specify start and end, counting from the beginning of the disk
+    - for instance: `mkpart primary 1024MiB 2048MiB`
+5. alternatively, use `mkpart` in interactive mode
+6. `print` to verify creation of the new partiton
+7. `quit` to exit the parted shell
+8. `udevadm settle` to ensure that the new partition device is created
+9. `cat /proc/partitions` to verify the creation of the partiton
+
+
+#### File system difference
+
+- XFS is the default file system
+    - fast and scalable
+    - uses CoW to guarantee data integrity
+    - size can be increased, not decreased
+- Ext4 was default in RHEL 6 and is still used
+    - backward compatible to Ext2
+    - users journal to guarantee data integrity
+    - size can be increased and decreased
+- Other file systems are available but less common
+
+#### Making and Mounting File System
+
+- `mkfs.xfs` creates an XFS file system
+- `mkfs.ext4`
+- `mkfs.[Tab][Tab]` to show a list of available file systems
+- Don't use `mkfs` as it will create an Ext2 file system!
+- After making the file system, you can mount it in runtime using the `mount` command
+- use `umount` to disconnect a device
+
+#### use `/etc/fstab` to mount
+
+- `/etc/fstab` is the main configuration file to persistently mount partitions
+- `/etc/fstab` content is used to generate systemd mounts by the `systemd-fstab-generator` utility
+- to update systemd, make sure to use `systemctl daemon-reload` after editing `/etc/fstab`
+
+#### persistent device naming
+
+in datacenter environments, block device names may change. different solutions exist for persistent namning
+
+- UUID : a UUID is automatically generated for each device that device that contains a file system or anything similiar
+- Label : wile creating the file system, the options -L can be used to set an arbitrary name that can be userd for mounting the fyle system
+- Unique device names are created in `/dev/disk`
+
+`tune2fs` tool to modify file system label 
+
+#### manage systemd mount
+
+- `/etc/fstab` mounts already are systemd mounts
+- mounts can be created using systemd `.mount` files
+- using `.mount` files allows you to be more spcific in defining dependencies
+- use `systemctl cat tmp.mount` for an example
+
+#### manage `xfs` file system
+
+- the `xfsdump` utility can be used for creating backup of XFS fromatted devices and considers specific XFS attributes
+    - `xfsdump` only works on a complete XFS device
+    - `xfsdump` can make full backup (-l 0) or different levels of incremental backups
+    - `xfsdump -l 0 -f /backupfiles/data.xfsdump /data` creates a full backup of the contents of the `/data` directory
+- the `xfsrestore` command is used to restore a backup that was made with `xfsdump`
+    - `xfsrestore -f /backupfiles/data.xfsdump /data`
+- the `xfsrepair` command can be manually started to repair broken XFS file systems
+
+#### Swap partition
+
+- Swap is RAM that is emulated on disk
+- All linux systems should have at least some swap
+    - the amount of swap depends on the use of the server
+- Swap can be created on ayn block device, includeing swap files
+- while creating swap with `parted`, set file system to linux-swap
+- after creating the swap partition, use `mkswap` to create the swap FS
+- activate using `swapon`
