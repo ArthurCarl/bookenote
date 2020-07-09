@@ -478,3 +478,153 @@ in datacenter environments, block device names may change. different solutions e
 - while creating swap with `parted`, set file system to linux-swap
 - after creating the swap partition, use `mkswap` to create the swap FS
 - activate using `swapon`
+
+### LVM Staits Virtual Data Optimizer
+
+#### LVM
+
+- create a partition, from `parted` use `set n lvm on`
+- use `pvcreate /dev/sdb1` to create the physical volume
+- use  `vgcreate vgdata /dev/sdb1` to  create the volume group
+- use `lvcreate -n lvdata -L 1G vgdata` to create the logical volume
+- use `mkfs /dev/vgdata/lvdata` to create a file system
+- put in `/etc/fstab` to mount it persistently
+
+ #### VDO
+
+ - ensure that underlying block devices are > 4GiB
+ - `yum install vdo kmod-kvdo`
+ - `vdo create --name=vdo1 --device=/dev/nvme0np2 --vdoLogicalSize=1T`
+ - `mkfs.xfs -K /dev/mapper/vdo1`
+ - `udevadm settle` will wait for the system to register the new device name
+ - in `/etc/fstab`, include the `x-systemd.requires=vdo.service` mount option
+ - monitor using `vdostats --human-readable`
+
+
+ #### LUKS Encrypted Volumes
+
+ - use `parted` to create a partition
+ - `cryptsetup luksFormat` will format the LUKS device
+ - `cryptsetup luksOpen` will open it and create a device mapper name
+ - mount the resulting device mapper device
+ - to automate the `cryptsetup luksOpen`, use `/etc/crypttab`
+ - to automate mounting the volume, use `/etc/fstab`
+
+ ## Linux kernel
+
+ #### Kerne Modules
+
+ - Linux drivers are implemented as kernel modules
+ - most kernel modules are loaded automatically through `initramfs` or `systemd-udevd`
+ - use `modprobe` to manually load kernel module
+ - use `lsmod` to list currently loaded kernel modules
+
+ ### `modprobe`
+
+ - use `modprobe` to load a kernel module and all its dependencies
+ - use `modprobe -r ` to unload
+ - `modinfo` can show module parameters
+ - to laod, specify kernel module parameters,edit `/etc/modprobe.conf` or the files in `/etc/modprobe.d`
+ 
+
+ ### tune kernel
+
+ - `/proc` is a file system that provides access to kernel information
+    - PID dir
+    - status files
+    - tunables in `/proc/sys`
+- use `echo` to write a value to any file in `/proc/sys` to change kernel performance parameters
+- write the parameters to `/etc/sysctl.conf` to make them persistent
+- use `sysctl -a` to show a list of all current settings
+
+### update kerne
+
+- Linux kernel are not technically updated, a new kernel is installed beside the old kernel
+- this allows administrators to boot the old kernel in case anything goes wrong
+- use either `yum update kernel` or `yum install kernel` to update the kernel
+
+### Boot procedure
+
+ #### modify Grub2 Runtime parameters
+
+ - from the grub2 boot menu, press `e` to edit runtime boot options
+ - press `c` to enter the grub2 command mode
+    - from command mode, type `help` for an overview of available options
+- to edit persitent Grub2 parameters, edit the configuration file in `/etc/default/grub`
+- after writing changes, compile changes to `grub.cfg`
+    - `grub2-mkconfig -o /boot/grub2/grub.cfg`
+    - `grub2-mkconfig -o /boot/efi/EFI/redhat/grub.cfg`
+
+### system target
+
+- a systemd target is a group of unit files
+- some targets are `isolatable`, which means that they define the final state a system is starting in 
+    - emergency.target
+    - rescue,target
+    - multi-user.target
+    - graphical.target
+- when enableing a unit , it is added to a specific target
+
+#### manage the default target
+
+- use `systemctl get-default` to see the current default target
+- use `systemctl set-default` to set a new default target 
+
+#### Booting the specific target
+
+- on the grup 2 boot promp, use `systemctl.unit=xxx.target` to boot into a specific target
+- to change between targets on a running system, use `systemctl isolate xxx.target`
+
+## Essential Troubleshooting Module
+
+### Troubleshooting Module
+
+1. GRUB -> `menu: kernel arguments` 
+2. kernel initramfs -> `rd.break`
+3. systemd -> `init=/bin/bash`
+4. base os - > `systemd.unit=emergency.target`
+5. service -> `rescure.target`
+
+### change `root` passwd
+
+- enter Grub menu while booting
+- find the line that loads the linux kernel and add `rd.break` to end of the line
+- `mount -o remount,rw /sysroot`
+- `chroot /sysroot`
+- `echo secret | passwd --stdin root`
+- `touch /.autorelabel` for Selinux
+
+### Troubleshooting Filesystem issue
+
+- real corruption does occur, but not often, and is automatically fixed
+- problems occur when making typo's in `/etc/fstab`
+- to fix : if necessary, remount filesystem in read/write state and edit `/etc/fstab`
+- fragmentation can be an issue, differenct tools exist to fix 
+    - `xfs_fsr` is the XFS File System Reorganizer, it optimizes XFS file systems
+    - `e4defrag` can be used to defragment Ext4
+
+### Troubleshooting Network issue
+
+- Wrong subnet mask
+- Wrong router
+- DNS not working
+
+### Troubleshooting Performance Problems
+
+- troubleshooting performance is an art on its own
+- focus on the four key area's of performance
+    - memory
+    - CPU load
+    - disk load
+    - network
+
+### software issue
+
+- dependency problems in RPM's
+    - should not occur when using repositories
+- library problems
+    - run `idconfig` to update the library cache
+
+### Troubleshooting Memery issue
+
+- 
