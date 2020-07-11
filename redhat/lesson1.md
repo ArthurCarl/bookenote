@@ -627,4 +627,130 @@ in datacenter environments, block device names may change. different solutions e
 
 ### Troubleshooting Memery issue
 
-- 
+ # Managing Network Service
+
+## SSH
+
+- `ssh-keygen` create a public/private key pair for the current user
+    - setting a passphrase for the private key makes it more secure, but less convenient
+- `ssh-cpoy-id` copies the public key over to the target server
+- `ssh-agent /bin/bash` allocates space in the bash shell to cache the private key passphrase
+- `ssh-add` adds the current passphrase to the cache 
+
+## Apache Configuration
+
+- Apache (httpd) is a leading web server on Linux
+- Nginx is the other leading web server
+- the main httpd configuration file is `/etc/httpd/conf/httpd.conf`
+- additional snap-in file can be stored in `/etc/httpd/conf.d/`
+- the default DocumentRoot is `/var/www/htdocs`
+- Apache looks for a file with the name `index.html` in this directory
+
+## Managing SELinux
+
+ - Linux security is built on UNIX security
+ - UNIX security consists of different solutions that were never developed with current IT security needs in mind
+ - Most of these solutions focuse on a part of the operating system
+ - SELinux provides a complete and mandatory security solution
+ - The principle, "unknown" services will always need addtional configuration to enable them in an environment where SELinux is enabled
+
+ ### SELinux States
+
+ - `getenforce` will show the current state
+ - `setenforce` toggles between Enforcing and Permissive
+ - Edit `/etc/sysconfig/selinux` to manage the default state of SELinux
+ - Never set to disabled if this is meant as a temporary measure only!
+
+ ### Context Labels
+
+ - Every objects is labeled with a context label
+    - `user` : user specific context
+    - `role` : role specific context
+    - `type` : flags which type of operation is allowed on this object
+- Many commands suppoert a `-Z` option to show current context information
+- Context types are used in the rules in the policy to define witch source object has access to which target object
+
+### File Context Labels
+
+- use `semanage-fcontext` to set  the file context label
+    - this will write the context to the SELinux Policy
+- to enforce the policy setting on the file system, use `restorecon`
+- alternatively, use `touch /.autorelabel` to relabel all filles to the context that is specified in the polict
+
+### SELinux Log
+
+-  SELinux uses `auditd` to write log messages to the audit log
+- Messages in the audit log may be hard to interpret
+- Ensure that `sealert` is available, it interprets messages from the audit log, applies SELinux AI, and writes meaningful messages to `/var/log/messages`
+- Run the `sealert` command, including the UUID message to get advice on how to troubleshoot specific issues
+
+## Firewalled Network
+
+- Service : the main component, contains one or more  ports as well as optional kernel modules that should be loaded
+- Zone : a default configuration to which network cards can be assigned to apply specific settings
+- Ports : optional elements to allow access to specific ports
+- Addtional components are available as well, but not frequently used in a base firewall configuration
+
+### `firewall-cmd`
+
+- the `firewall-cmd` command is used to write firewall configuration
+- use the option `--permanent` to write to persistent(but not to runtime)
+- without `--permanent` the rule is written to runtime (but not to persistent). Need to restart 
+
+## Automating Installations
+
+- Vagrant is used for automatic deployment of virtual machines
+- Cloud-init and other templates can be used in cloud environments
+- Kickstart can be used with a PXE-boot server to provide instructions for automatic installations of RHEL
+
+A kickstart file contains all installation instructions to set up  a RHEL instance. It can be used to easily reproduce installations.
+
+### work with kickstart file
+
+- after installation, a file anaconda-ks.cfg is created to the root user home directory
+- edit this file manually to make ayn changes that are required
+
+## Configure time service
+
+- `date` `timedatectl` `tzselect`
+
+## Remote File System
+
+- run the `nfs-service` service
+- create a directory you want to share : `/data`
+- edit `/etc/exports` to contain the following line
+    - `/data *(rw,no_root_squash)`
+
+### mounting NFS shares
+
+- use `showmount -e nfs-server` to show exports
+- use `mount nfsserver:/share /mnt` to mount
+- while mounting through `/etc/fstab`, include the `_netdev` mount option
+
+### configure a Base Samba Server
+
+- install the Samba server package
+- create a directory to share 
+- create a local Linux user
+- Set Linux Permissions
+- use `smbpasswd -a` to add a Samba user account
+- enable the share in `/etc/samba/samba.conf`
+- use `systemctl start smb` to start the service
+- use `firewall-cmd --add-service samba --permanent; firewall-cmd --reload` to open the firewall
+
+### mounting Samba Shares
+
+- install the cifs-utils and samba-client RPM packages
+- use `smbclient -L //sambahost` to discover shares
+- use `mount -o username=sambauser //sambaserver/share /somewhere` to mount the share
+- make mount persistent through `/etc/fstab`, using the `_netdev` , `username=` and `passwd=` mount options
+
+### Automount
+
+- in `/etc/auto.master` you will identify the directory that automaount should manage, and the file that is used for additional mount information
+    - `/data` `/etc/auto.data`
+- in `/etc/auto.data` you will identify the subdirectory on which to mount, and what to mount excactly
+    - `files -rw nfsserver:/data/files`
+- ensure the autofs service is started:
+    - `systemctl enable --now autofs`
+    
