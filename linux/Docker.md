@@ -1,4 +1,12 @@
+# Docker Deep Dive
 
+## Daemon 
+
+In a default Linux installation, the client talks to the daemon via a local IPC/Unix socket at `/var/run/docker.sock`.
+
+## Docker engine
+
+`Docker client` `Docker daemon` `containerd` `runc`
 
 
 ------

@@ -55,8 +55,10 @@ $ cp ~/.kube/config ~/original-kubeconfig
 
 # 查看配置具体选项
 $ kubectl config set-credentials -h
+
 # 复制到新目录
 $ cp ~/original-kubeconfig ~/new-kubeconfig
+
 # 添加用户
 $ kubectl config set-credentials local@local.com --username=local-local --password=123qwe --kubeconfig="new-kubeconfig"
 ```
@@ -227,6 +229,7 @@ curl --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" -X GET ${APISE
 
 
 ### Change the default StorageClass
+
 1. ` kubectl patch storageclass <your-class-name> -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}' `
 
 #### 
@@ -299,4 +302,74 @@ spec:
       hostNetwork: false
       hostPID: false
       volumes: []
+```
+
+# Kubernetes in Action
+
+## Service:enabling clients to discover and talk to pod
+
+#### TLS traffic
+
+HTTPS client and Ingress Controller is encrypted, but controller and backend is not.
+
+Create a TLS certificate for Ingress
+
+``` shell
+
+# generate cet file and key
+openssl genrsa -out tls.key 2048
+openssl req -new -x509 -key tls.key -out tls.cert -days 360 -subj /CN=kubia.example.com
+
+# create secret in k8s
+kubectl create secreate tls tls-secret --cert=tls.cert --key=tls.key
+
+```
+
+Ingress yaml
+
+``` yaml
+......
+metadata:
+  name: kubia
+spec:
+  tls:
+    - hosts:
+      - kubia.example.com
+      secretName: tls-secret
+......
+```
+
+### Signaling when a pod is ready to accept connections
+
+Three Type of Readiness probes:
+1. `exec`
+2. `HTTP GET` 
+3. `TCP Socket`
+
+### Headless Service
+
+Set service spec `clusterIP: None`. Headless Service No proxy, traffice directly transfered to Pod
+
+Headless service:
+
+``` yaml
+......
+spec:
+  clusterIP: None
+  ports:
+    ......
+......
+```
+
+## Volumes: attaching disk storage to container
+
+### `emptyDir` Volume
+
+create emptyDir in memory:
+
+``` yaml
+volumes:
+  - name: html
+    emptyDir:
+      medium: Memory
 ```
